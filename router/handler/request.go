@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gostar/utils"
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 // @en request object

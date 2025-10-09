@@ -2,11 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"gostar/date"
-	"gostar/utils"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/date"
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 // @en check if file name is log file

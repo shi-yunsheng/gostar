@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"gostar/logger"
-	"gostar/router/handler"
 	"time"
+
+	"github.com/shi-yunsheng/gostar/logger"
+	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
 // @en log middleware

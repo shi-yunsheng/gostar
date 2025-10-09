@@ -1,10 +1,11 @@
 package logger
 
 import (
-	"gostar/date"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/shi-yunsheng/gostar/date"
 )
 
 // @en auto delete logs

@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"gostar/router/handler"
 	"net/http"
 	"slices"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
 // @en CORS middleware

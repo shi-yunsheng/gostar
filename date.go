@@ -1,6 +1,6 @@
 package gostar
 
-import "gostar/date"
+import "github.com/shi-yunsheng/gostar/date"
 
 // @en initialize timezone
 //

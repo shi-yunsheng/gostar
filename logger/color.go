@@ -2,7 +2,8 @@ package logger
 
 import (
 	"fmt"
-	"gostar/date"
+
+	"github.com/shi-yunsheng/gostar/date"
 )
 
 const (

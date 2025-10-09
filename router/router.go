@@ -1,9 +1,10 @@
 package router
 
 import (
-	"gostar/router/handler"
-	"gostar/router/middleware"
 	"net/http"
+
+	"github.com/shi-yunsheng/gostar/router/handler"
+	"github.com/shi-yunsheng/gostar/router/middleware"
 )
 
 // @en new router

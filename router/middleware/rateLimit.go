@@ -1,13 +1,14 @@
 package middleware
 
 import (
-	"gostar/router/handler"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"gostar/logger"
+	"github.com/shi-yunsheng/gostar/router/handler"
+
+	"github.com/shi-yunsheng/gostar/logger"
 )
 
 // @en rate limit middleware

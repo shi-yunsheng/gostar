@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"gostar/logger"
-	"gostar/router/handler"
-	"gostar/utils"
+
+	"github.com/shi-yunsheng/gostar/logger"
+	"github.com/shi-yunsheng/gostar/router/handler"
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 var debug = false

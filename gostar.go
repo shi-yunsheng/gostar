@@ -1,12 +1,13 @@
 package gostar
 
 import (
-	"gostar/logger"
-	"gostar/model"
-	"gostar/router"
-	"gostar/router/middleware"
 	"net/http"
 	"sync"
+
+	"github.com/shi-yunsheng/gostar/logger"
+	"github.com/shi-yunsheng/gostar/model"
+	"github.com/shi-yunsheng/gostar/router"
+	"github.com/shi-yunsheng/gostar/router/middleware"
 )
 
 var (

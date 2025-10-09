@@ -1,10 +1,11 @@
 package model
 
 import (
-	"gostar/date"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/shi-yunsheng/gostar/date"
 
 	"github.com/go-redis/redis"
 )

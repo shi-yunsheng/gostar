@@ -1,4 +1,4 @@
-module gostar
+module github.com/shi-yunsheng/gostar
 
 go 1.25.0
 

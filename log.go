@@ -1,8 +1,9 @@
 package gostar
 
 import (
-	"gostar/logger"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/logger"
 )
 
 // @en Log config

@@ -1,6 +1,6 @@
 package middleware
 
-import "gostar/router/handler"
+import "github.com/shi-yunsheng/gostar/router/handler"
 
 // @en middleware function
 //

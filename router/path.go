@@ -1,12 +1,13 @@
 package router
 
 import (
-	"gostar/date"
-	"gostar/router/handler"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/date"
+	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
 // @en parse route

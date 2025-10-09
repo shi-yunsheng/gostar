@@ -2,9 +2,10 @@ package model
 
 import (
 	"fmt"
-	"gostar/utils"
 	"reflect"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/utils"
 
 	"github.com/mitchellh/mapstructure"
 	"gorm.io/gorm"

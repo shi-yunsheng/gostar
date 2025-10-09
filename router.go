@@ -1,8 +1,8 @@
 package gostar
 
 import (
-	"gostar/router"
-	"gostar/router/middleware"
+	"github.com/shi-yunsheng/gostar/router"
+	"github.com/shi-yunsheng/gostar/router/middleware"
 )
 
 // @en use router

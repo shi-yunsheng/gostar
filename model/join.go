@@ -2,8 +2,9 @@ package model
 
 import (
 	"fmt"
-	"gostar/utils"
 	"reflect"
+
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 // @en join query

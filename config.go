@@ -1,8 +1,9 @@
 package gostar
 
 import (
-	"gostar/model"
 	"os"
+
+	"github.com/shi-yunsheng/gostar/model"
 
 	"gopkg.in/yaml.v3"
 )

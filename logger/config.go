@@ -2,11 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"gostar/date"
-	"gostar/utils"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/date"
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 var (

@@ -1,9 +1,10 @@
 package router
 
 import (
-	"gostar/router/handler"
 	"regexp"
 	"strings"
+
+	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
 // @en parse param

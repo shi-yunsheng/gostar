@@ -2,12 +2,13 @@ package handler
 
 import (
 	"fmt"
-	"gostar/date"
-	"gostar/utils"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/shi-yunsheng/gostar/date"
+	"github.com/shi-yunsheng/gostar/utils"
 )
 
 // @en download configuration

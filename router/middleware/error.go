@@ -41,7 +41,11 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 							Data:    nil,
 						})
 					} else {
-						w.Error(fmt.Errorf("internal server error: %v\n\nstack info: %s", err, stackInfo))
+						if r.Method == "GET" {
+							handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
+						} else {
+							w.Error(fmt.Errorf("internal server error: %v\n\nstack info: %s", err, stackInfo))
+						}
 					}
 					return
 				}
@@ -54,7 +58,11 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 						Data:    nil,
 					})
 				} else {
-					w.Error(fmt.Errorf("internal server error: %v", err))
+					if r.Method == "GET" {
+						handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
+					} else {
+						w.Error(fmt.Errorf("internal server error: %v", err))
+					}
 				}
 			}
 		}()

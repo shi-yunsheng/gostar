@@ -132,5 +132,12 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) {
 		handlerFunc = handler.ToWebsocketHandler(handlerFunc, route.WebsocketUpgrade)
 	}
 
+	// @en if handlerFunc is nil, return 404
+	// @zh 如果handlerFunc为nil，返回404
+	if handlerFunc == nil {
+		handler.NotFound(w, req)
+		return
+	}
+
 	handlerFunc(w, req)
 }

@@ -5,13 +5,25 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"github.com/shi-yunsheng/gostar/utils"
 )
+
+var debug = false
+
+// @en enable debug mode
+//
+// @zh 开启调试模式
+func EnableDebug() {
+	debug = true
+}
 
 type ErrorHtml struct {
 	Title       string `json:"title"`
 	Code        string `json:"code"`
 	Description string `json:"description"`
 	Message     string `json:"message"`
+	Stack       string `json:"stack"`
 }
 
 var errorTemplate = `<!DOCTYPE html>
@@ -38,6 +50,42 @@ var errorTemplate = `<!DOCTYPE html>
 			font-size: 14px;
 			line-height: 1.5;
 		}
+
+		:root {
+			--scrollbar-color: #c1c1c1;
+			--scrollbar-background: #ececec;
+			--scrollbar-track: #f2f3f5;
+			--text-color-1: #000000;
+			--text-color-2: #181818;
+			--background-color-1: #ffffff;
+			--background-color-2: #f2f3f5;
+		}
+
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--scrollbar-color: #444444;
+				--scrollbar-background: #222222;
+				--scrollbar-track: #181a1b;
+				--text-color-1: #f5f5f5;
+				--text-color-2: #cccccc;
+				--background-color-1: #181a1b;
+				--background-color-2: #23272e;
+			}
+		}
+
+		::-webkit-scrollbar {
+			width: 0.5rem;
+			background: var(--scrollbar-background);
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: var(--scrollbar-color);
+			border-radius: 0.25rem;
+		}
+
+		::-webkit-scrollbar-track {
+			background: var(--scrollbar-track);
+		}
 			
         .container {
             display: flex;
@@ -47,7 +95,8 @@ var errorTemplate = `<!DOCTYPE html>
             height: 100svh;
             margin: 0;
             gap: 0.1em;
-			color: #000;
+			color: var(--text-color-1);
+			background-color: var(--background-color-1);
 			mix-blend-mode: difference;
         }
 
@@ -68,6 +117,23 @@ var errorTemplate = `<!DOCTYPE html>
             font-weight: 400;
             letter-spacing: 0.05em;
         }
+
+		.stack {
+			font-size: 0.9em;
+			color: var(--text-color-2);
+			background-color: var(--background-color-2);
+			padding: 1rem;
+			border-radius: 0.625rem;
+			margin-top: 0.5rem;
+			font-weight: 400;
+			letter-spacing: 0.05em;
+			white-space: pre-wrap;
+			word-break: break-all;
+			word-wrap: break-word;
+			overflow-wrap: break-word;
+			overflow: auto;
+    		max-height: 70vh;
+		}
     </style>
 </head>
 <body>
@@ -75,6 +141,9 @@ var errorTemplate = `<!DOCTYPE html>
         <div class="code">{{.Code}}</div>
         <div class="description">{{.Description}}</div>
         <div class="message">{{.Message}}</div>
+		{{if .Stack}}
+		<div class="stack">{{.Stack}}</div>
+		{{end}}
     </div>
 </body>
 </html>`
@@ -102,6 +171,10 @@ func NotFound(w *Response, r Request) {
 		Message:     "Sorry, the page you visited does not exist.",
 	}
 
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
+	}
+
 	w.Html(errorPage(errorHtml))
 }
 
@@ -116,6 +189,10 @@ func MethodNotAllowed(w *Response, r Request) {
 		Code:        "405",
 		Description: "Method Not Allowed",
 		Message:     "Sorry, the method you used is not allowed.",
+	}
+
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
 	}
 
 	w.Html(errorPage(errorHtml))
@@ -134,6 +211,10 @@ func Unauthorized(w *Response, r Request) {
 		Message:     "Sorry, you are not authorized to access this page.",
 	}
 
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
+	}
+
 	w.Html(errorPage(errorHtml))
 }
 
@@ -148,6 +229,10 @@ func Forbidden(w *Response, r Request) {
 		Code:        "403",
 		Description: "Forbidden",
 		Message:     "Sorry, you are not allowed to access this page.",
+	}
+
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
 	}
 
 	w.Html(errorPage(errorHtml))
@@ -166,6 +251,10 @@ func InternalServerError(w *Response, r Request, err error) {
 		Message:     fmt.Sprintf("Sorry, the server is busy, please try again later. ERROR: %s", err.Error()),
 	}
 
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
+	}
+
 	w.Html(errorPage(errorHtml))
 }
 
@@ -180,6 +269,10 @@ func BadRequest(w *Response, r Request, err error) {
 		Code:        "400",
 		Description: "Bad Request",
 		Message:     fmt.Sprintf("Sorry, the request is invalid. ERROR: %s", err.Error()),
+	}
+
+	if debug {
+		errorHtml.Stack = utils.GetStackTrace()
 	}
 
 	w.Html(errorPage(errorHtml))

@@ -7,6 +7,7 @@ import (
 	"github.com/shi-yunsheng/gostar/logger"
 	"github.com/shi-yunsheng/gostar/model"
 	"github.com/shi-yunsheng/gostar/router"
+	"github.com/shi-yunsheng/gostar/router/handler"
 	"github.com/shi-yunsheng/gostar/router/middleware"
 )
 
@@ -59,6 +60,7 @@ func (g *goStar) initGoStar() {
 	// @zh 如果调试模式已开启，则开启各个组件的调试模式
 	if g.config.Debug {
 		middleware.EnableDebug()
+		handler.EnableDebug()
 	}
 
 	g.initDate()

@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net"
@@ -16,6 +19,7 @@ import (
 type Request struct {
 	*http.Request
 	params []Param
+	model  any
 }
 
 // @en set parameters
@@ -38,22 +42,90 @@ func (r *Request) GetParam(key string) any {
 	return nil
 }
 
+// @en get binding parameter model
+//
+// @zh 获取绑定参数模型
+func (r *Request) GetBindModel() any {
+	return r.model
+}
+
+// @en set binding parameter model
+//
+// @zh 设置绑定参数模型
+func (r *Request) SetBindModel(model any) {
+	r.model = model
+}
+
 // @en get query
 //
 // @zh 获取查询参数
 func (r *Request) GetQuery(key string, defaultVal ...any) any {
+	query := r.GetAllQuery()
+	if val, ok := query[key]; ok {
+		return val
+	}
+	if len(defaultVal) > 0 {
+		return defaultVal[0]
+	}
+	return nil
+}
+
+// @en get all query parameters
+//
+// @zh 获取所有查询参数
+func (r *Request) GetAllQuery() map[string]any {
 	query := r.URL.Query()
-	if query == nil && len(defaultVal) == 0 {
-		return nil
-	}
-	value, ok := query[key]
-	if !ok || len(value) == 0 {
-		if len(defaultVal) > 0 {
-			return defaultVal[0]
+	result := make(map[string]any)
+	for key, values := range query {
+		if len(values) == 1 {
+			result[key] = values[0]
+		} else {
+			result[key] = values
 		}
-		return nil
 	}
-	return value[0]
+	return result
+}
+
+// @en get body
+//
+// @zh 获取请求体
+func (r *Request) GetBody(key string) (any, error) {
+	body, err := r.GetAllBody()
+	if err != nil {
+		return nil, err
+	}
+	if val, ok := body[key]; ok {
+		return val, nil
+	}
+	return nil, errors.New("key not found")
+}
+
+// @en get all body data
+//
+// @zh 获取所有请求体数据
+func (r *Request) GetAllBody() (map[string]any, error) {
+	if r.Body == nil {
+		return nil, errors.New("request body is empty")
+	}
+
+	// @en read request body only once
+	// @zh 只读取一次请求体
+	body, err := io.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// @en put the content back for subsequent reads
+	// @zh 将读取的内容放回，以便后续再次读取
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	var jsonData map[string]any
+	if err := json.Unmarshal(body, &jsonData); err != nil {
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
 // @en get client IP

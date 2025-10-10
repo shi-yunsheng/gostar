@@ -90,6 +90,10 @@ type Route struct {
 	//
 	// @zh 父路径
 	parent string
+	// @en parameter binding, used for deserializing parameters
+	//
+	// @zh 参数绑定，用于反序列化参数
+	Bind *handler.Bind
 }
 
 // @en Router manages HTTP routes and handlers

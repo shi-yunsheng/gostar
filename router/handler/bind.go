@@ -21,8 +21,13 @@ type Bind struct {
 	//
 	// @zh 请求方法，同HTTP方法，为空则根据请求方法进行绑定
 	Method string
-
-	once      sync.Once
+	// @en ensures model type is initialized only once
+	//
+	// @zh 确保模型类型只初始化一次
+	once sync.Once
+	// @en cached model type
+	//
+	// @zh 缓存模型类型
 	modelType reflect.Type
 }
 

@@ -26,10 +26,10 @@ type goStar struct {
 // @en new goStar instance
 //
 // @zh 新建GoStar实例
-func New() *goStar {
+func New(configName ...string) *goStar {
 	instance := &goStar{
 		version: "1.0.0",
-		config:  getConfig(),
+		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
 	instance.initGoStar()
@@ -39,11 +39,11 @@ func New() *goStar {
 // @en new goStar instance once
 //
 // @zh 新建唯一GoStar实例
-func NewOnce() *goStar {
+func NewOnce(configName ...string) *goStar {
 	once.Do(func() {
 		instance = &goStar{
 			version: "1.0.0",
-			config:  getConfig(),
+			config:  getConfig(configName...),
 			router:  router.NewRouter(),
 		}
 		instance.initGoStar()

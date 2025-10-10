@@ -116,6 +116,12 @@ func (r *Request) GetAllBody() (map[string]any, error) {
 		return nil, err
 	}
 
+	// @en if request body is empty, return error
+	// @zh 如果请求体为空，返回错误
+	if len(body) == 0 {
+		return nil, errors.New("request body is empty")
+	}
+
 	// @en put the content back for subsequent reads
 	// @zh 将读取的内容放回，以便后续再次读取
 	r.Body = io.NopCloser(bytes.NewBuffer(body))

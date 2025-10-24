@@ -10,11 +10,11 @@ import (
 
 	"github.com/shi-yunsheng/gostar/utils"
 
+	"github.com/glebarez/sqlite"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )

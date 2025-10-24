@@ -145,16 +145,6 @@ type BaseModel struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	// @en ID prefix
-	// @zh ID前缀
-	_idPrefix_ string `json:"-"`
-}
-
-// @en set ID prefix
-//
-// @zh 设置ID前缀
-func (b *BaseModel) SetIDPrefix(prefix string) {
-	b._idPrefix_ = prefix
 }
 
 // @en before create hook, if ID is empty, generate snowflake ID
@@ -162,7 +152,7 @@ func (b *BaseModel) SetIDPrefix(prefix string) {
 // @zh 创建前钩子，如果ID为空，则生成雪花ID
 func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 	if b.ID == "" {
-		b.ID = GenerateSnowflakeIDSafe(b._idPrefix_)
+		b.ID = GenerateSnowflakeIDSafe()
 	}
 	return nil
 }

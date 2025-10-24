@@ -195,5 +195,5 @@ Issues and Pull Requests are welcome!
 
 ## Version
 
-Current version: v1.0.4-beta
+Current version: v1.0.5-beta
 

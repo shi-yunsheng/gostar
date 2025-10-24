@@ -136,3 +136,33 @@ type JoinParams struct {
 	// @zh 分页参数，如果需要分页查询，则需要指定
 	PageParams *PageParams `json:"page_params"`
 }
+
+// @en Base model struct. Contains ID, created time, updated time, and deleted time.
+//
+// @zh 基础模型结构，包含ID、创建时间、更新时间和删除时间
+type BaseModel struct {
+	ID        string `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	// @en ID prefix
+	// @zh ID前缀
+	_idPrefix_ string `json:"-"`
+}
+
+// @en set ID prefix
+//
+// @zh 设置ID前缀
+func (b *BaseModel) SetIDPrefix(prefix string) {
+	b._idPrefix_ = prefix
+}
+
+// @en before create hook, if ID is empty, generate snowflake ID
+//
+// @zh 创建前钩子，如果ID为空，则生成雪花ID
+func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
+	if b.ID == "" {
+		b.ID = GenerateSnowflakeIDSafe(b._idPrefix_)
+	}
+	return nil
+}

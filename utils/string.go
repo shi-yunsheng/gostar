@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"hash/fnv"
 	"math/rand"
 	"strings"
 	"time"
@@ -89,4 +90,13 @@ func SnakeToCamel(s string, isFirstUpper ...bool) string {
 	}
 
 	return strings.Join(words, "")
+}
+
+// @en generate hash from string
+//
+// @zh 从字符串生成哈希值
+func StringHash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
 }

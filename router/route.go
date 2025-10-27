@@ -1,8 +1,12 @@
 package router
 
 import (
+	"encoding/json"
 	"net/http"
+	"reflect"
+	"sync"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/shi-yunsheng/gostar/router/handler"
 	"github.com/shi-yunsheng/gostar/router/middleware"
 
@@ -90,10 +94,82 @@ type Route struct {
 	//
 	// @zh 父路径
 	parent string
-	// @en parameter binding, used for deserializing parameters
+	// @en model, can implement "Validate() error" interface, if "Validate" interface is implemented, it will be used to validate the model, otherwise use github.com/go-playground/validator/v10 to validate the model, for more information about validator, please refer to https://github.com/go-playground/validator
 	//
-	// @zh 参数绑定，用于反序列化参数
-	Bind *handler.Bind
+	// @zh 模型，可以实现"Validate() error"接口，如果有"Validate"接口，则优先使用"Validate"接口进行校验，否则使用 github.com/go-playground/validator/v10 进行校验，有关validator的用法请参考 https://github.com/go-playground/validator
+	Bind any
+	// @en ensures model type is initialized only once
+	//
+	// @zh 确保模型类型只初始化一次
+	once sync.Once
+	// @en cached model type
+	//
+	// @zh 缓存模型类型
+	modelType reflect.Type
+}
+
+// @en validate bind parameter
+//
+// @zh 验证绑定参数
+func (r *Route) Validate(req *handler.Request) (any, error) {
+	// @en initialize model type
+	// @zh 初始化模型类型
+	r.once.Do(func() {
+		t := reflect.TypeOf(r.Bind)
+		if t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+		r.modelType = t
+	})
+
+	// @en create model instance
+	// @zh 创建模型实例
+	modelInstance := reflect.New(r.modelType).Interface()
+
+	// @en if r.Method is empty, bind the request body or query parameters to the model
+	// @zh 如果没有指定请求方式，则根据实际的请求方式进行绑定，POST、PUT、PATCH、DELETE请求方式绑定请求体，其他请求方式绑定查询参数
+	if r.Method == "" {
+		var model map[string]any
+
+		switch r.Method {
+		case "POST", "PUT", "PATCH", "DELETE":
+			body, err := req.GetAllBody()
+			if err != nil {
+				return nil, err
+			}
+			model = body
+		default:
+			query := req.GetAllQuery()
+			model = query
+		}
+
+		jsonData, err := json.Marshal(model)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(jsonData, modelInstance)
+		if err != nil {
+			return nil, err
+		}
+
+		// @en if model implements "Validate() error" interface, use Validate interface to validate the model
+		// @zh 如果模型实现了"Validate() error"接口，则使用Validate接口进行校验
+		if validateObj, ok := modelInstance.(interface{ Validate() error }); ok {
+			err = validateObj.Validate()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// @en model does not implement "Validate() error" interface, use github.com/go-playground/validator/v10 to validate the model
+			// @zh 模型没有实现"Validate() error"接口，使用github.com/go-playground/validator/v10进行校验
+			validate := validator.New()
+			err = validate.Struct(modelInstance)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return modelInstance, nil
 }
 
 // @en Router manages HTTP routes and handlers

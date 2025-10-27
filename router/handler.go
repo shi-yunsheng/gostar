@@ -116,7 +116,7 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) {
 
 	req.SetParams(r.parseParam(route, path))
 	if route.Bind != nil {
-		model, err := route.Bind.Validate(&req)
+		model, err := route.Validate(&req)
 		if err != nil {
 			handler.BadRequest(w, req, err)
 			return

@@ -19,7 +19,7 @@ GoStar 是一个轻量级、功能丰富的 Go Web 框架，旨在提供简洁�
 ## 安装
 
 ```bash
-go get -u github.com/shi-yunsheng/gostar
+go get -u github.com/shi-yunsheng/gostar@v1.0.8-beta
 ```
 
 ## 快速开始
@@ -195,5 +195,5 @@ gostar/
 
 ## 版本
 
-当前版本：v1.0.5-beta
+当前版本：v1.0.8-beta
 

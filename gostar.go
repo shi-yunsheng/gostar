@@ -28,7 +28,7 @@ type goStar struct {
 // @zh 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance := &goStar{
-		version: "1.0.0",
+		version: "1.0.6-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
@@ -42,7 +42,7 @@ func New(configName ...string) *goStar {
 func NewOnce(configName ...string) *goStar {
 	once.Do(func() {
 		instance = &goStar{
-			version: "1.0.0",
+			version: "1.0.6-beta",
 			config:  getConfig(configName...),
 			router:  router.NewRouter(),
 		}
@@ -105,4 +105,11 @@ func (g *goStar) Run() error {
 func (g *goStar) Close() error {
 	logger.Close()
 	return g.server.Close()
+}
+
+// @en get goStar context
+//
+// @zh 获取GoStar上下文
+func GetContext() *goStar {
+	return instance
 }

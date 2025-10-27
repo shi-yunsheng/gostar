@@ -112,7 +112,7 @@ database:
 redis:
 
 # 自定义配置（用户可以在此添加任何自定义配置项）
-# 支持嵌套结构，可通过 gostar.GetConfig() 访问
+# 支持嵌套结构，可通过应用上下文获取 GetConfig() 配置
 # 示例：
 # app_name: "我的应用"
 # upload:

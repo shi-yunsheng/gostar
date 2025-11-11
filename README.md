@@ -19,7 +19,7 @@ GoStar is a lightweight, feature-rich Go web framework designed to provide clean
 ## Installation
 
 ```bash
-go get -u github.com/shi-yunsheng/gostar@v1.0.8-beta
+go get -u github.com/shi-yunsheng/gostar@v1.0.9-beta
 ```
 
 ## Quick Start
@@ -195,5 +195,5 @@ Issues and Pull Requests are welcome!
 
 ## Version
 
-Current version: v1.0.8-beta
+Current version: v1.0.9-beta
 

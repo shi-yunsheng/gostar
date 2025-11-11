@@ -28,7 +28,7 @@ type goStar struct {
 // @zh 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance := &goStar{
-		version: "1.0.8-beta-beta",
+		version: "1.0.9-beta-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
@@ -42,7 +42,7 @@ func New(configName ...string) *goStar {
 func NewOnce(configName ...string) *goStar {
 	once.Do(func() {
 		instance = &goStar{
-			version: "1.0.8-beta-beta",
+			version: "1.0.9-beta-beta",
 			config:  getConfig(configName...),
 			router:  router.NewRouter(),
 		}

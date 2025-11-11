@@ -8,6 +8,7 @@ import (
 
 	"github.com/shi-yunsheng/gostar/date"
 	"github.com/shi-yunsheng/gostar/router/handler"
+	"github.com/shi-yunsheng/gostar/router/middleware"
 )
 
 // @en parse route
@@ -80,6 +81,36 @@ func (r *Router) parseRoute(routes []Route, parent string) {
 		// @en store route
 		// @zh 存储路由
 		r.routes[route.Path] = route
+
+		// @en merge parent route configuration (SecretKey and Middleware)
+		// @zh 合并父路由的配置（SecretKey和Middleware）
+		if route.parent != "" && r.routes[route.parent] != nil {
+			parentRoute := r.routes[route.parent]
+
+			// @en merge SecretKey from parent to child
+			// @zh 从父路由合并SecretKey到子路由
+			if parentRoute.SecretKey != nil {
+				if route.SecretKey == nil {
+					route.SecretKey = make(map[string]string)
+				}
+				for key, value := range parentRoute.SecretKey {
+					// @en if child has the same key, keep child's value
+					// @zh 如果子路由有相同的key，保留子路由的值
+					if _, exists := route.SecretKey[key]; !exists {
+						route.SecretKey[key] = value
+					}
+				}
+			}
+
+			// @en merge Middleware from parent to child (parent middleware first)
+			// @zh 从父路由合并中间件到子路由（父路由中间件在前）
+			if len(parentRoute.Middleware) > 0 {
+				mergedMiddleware := make([]middleware.Middleware, 0, len(parentRoute.Middleware)+len(route.Middleware))
+				mergedMiddleware = append(mergedMiddleware, parentRoute.Middleware...)
+				mergedMiddleware = append(mergedMiddleware, route.Middleware...)
+				route.Middleware = mergedMiddleware
+			}
+		}
 
 		// @en if static file or webapp is not set, parse children
 		// @zh 如果静态文件或网站设置为空，则解析子路由

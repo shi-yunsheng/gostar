@@ -7,6 +7,20 @@ import (
 	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
+// @en get method from route recursively (child has priority, if empty, use parent)
+// @zh 递归获取路由的Method（子路由优先，如果为空则使用父路由）
+func (r *Router) getMethod(route *Route) Method {
+	if route.Method != "" {
+		return route.Method
+	}
+
+	if route.parent != "" && r.routes[route.parent] != nil {
+		return r.getMethod(r.routes[route.parent])
+	}
+
+	return ""
+}
+
 // @en parse param
 //
 // @zh 解析参数
@@ -96,9 +110,10 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) {
 		return
 	}
 
-	// @en validate request method
-	// @zh 验证请求方法
-	if route.Method != "" && string(route.Method) != req.Method {
+	// @en validate request method (recursively check parent routes)
+	// @zh 验证请求方式（递归检查父路由）
+	method := r.getMethod(route)
+	if method != "" && string(method) != req.Method {
 		handler.MethodNotAllowed(w, req)
 		return
 	}

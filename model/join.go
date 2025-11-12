@@ -7,9 +7,7 @@ import (
 	"github.com/shi-yunsheng/gostar/utils"
 )
 
-// @en join query
-//
-// @zh 联合查询
+// 联合查询
 func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	if len(params.Models) == 0 {
 		return nil, fmt.Errorf("models list cannot be empty")
@@ -23,9 +21,7 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	query := db.db
 	tablePrefix := db.prefix
 	joinConditions := parseJoinConditions(params.JoinConditions, dbName...)
-
-	// @en convert all models to struct types and get table names
-	// @zh 将所有模型转换为结构体类型并获取表名
+	// 将所有模型转换为结构体类型并获取表名
 	for i, model := range params.Models {
 		modelType := reflect.TypeOf(model)
 		if modelType.Kind() == reflect.Ptr {
@@ -36,16 +32,12 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 		if !ok {
 			return nil, fmt.Errorf("model [%s] not found", modelName)
 		}
-
-		// @en set main table
-		// @zh 设置主表
+		// 设置主表
 		if i == 0 {
 			query = query.Model(registeredModel)
 			continue
 		}
-
-		// @en join tables, if no join conditions, use model-defined foreign keys
-		// @zh 连接表，如果没有连接条件，则使用模型定义的外键
+		// 连接表，如果没有连接条件，则使用模型定义的外键
 		sql := ""
 		if len(joinConditions) > 0 {
 			sql = fmt.Sprintf("JOIN %s ON %s", tablePrefix+modelName, joinConditions[i-1])
@@ -54,13 +46,10 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 		}
 		query = query.Joins(sql)
 	}
-
-	// @en if select fields are specified
-	// @zh 如果指定查询字段
+	// 如果指定查询字段
 	if len(params.SelectFields) > 0 {
 		for i, field := range params.SelectFields {
-			// @en validate field name
-			// @zh 验证字段名
+			// 验证字段名
 			if !isValidFieldName(field) {
 				return nil, fmt.Errorf("query field [%s] not found", field)
 			}
@@ -69,16 +58,12 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 		}
 		query = query.Select(params.SelectFields)
 	}
-
-	// @en parse query conditions
-	// @zh 解析查询条件
+	// 解析查询条件
 	query, err := parseQueryConditions(params.QueryConditions, query)
 	if err != nil {
 		return nil, err
 	}
-
-	// @en apply pagination if params provided
-	// @zh 如果有分页参数，则应用分页
+	// 如果有分页参数，则应用分页
 	if params.PageParams != nil {
 		return parsePager[map[string]any](params.PageParams, query)
 	}

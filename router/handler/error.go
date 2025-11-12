@@ -11,9 +11,7 @@ import (
 
 var debug = false
 
-// @en enable debug mode
-//
-// @zh 开启调试模式
+// 开启调试模式
 func EnableDebug() {
 	debug = true
 }
@@ -148,8 +146,7 @@ var errorTemplate = `<!DOCTYPE html>
 </body>
 </html>`
 
-// @en get error html
-// @zh 获取错误html
+// 获取错误html
 func errorPage(errorHtml ErrorHtml) string {
 	tmpl := template.Must(template.New("error").Parse(errorTemplate))
 	var buf bytes.Buffer
@@ -158,9 +155,7 @@ func errorPage(errorHtml ErrorHtml) string {
 	return buf.String()
 }
 
-// @en 404 not found
-//
-// @zh 404 页面不存在
+// 404 页面不存在
 func NotFound(w *Response, r Request) {
 	w.WriteHeader(http.StatusNotFound)
 
@@ -178,9 +173,7 @@ func NotFound(w *Response, r Request) {
 	w.Html(errorPage(errorHtml))
 }
 
-// @en 405 method not allowed
-//
-// @zh 405 请求方法不允许
+// 405 请求方法不允许
 func MethodNotAllowed(w *Response, r Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 
@@ -198,9 +191,7 @@ func MethodNotAllowed(w *Response, r Request) {
 	w.Html(errorPage(errorHtml))
 }
 
-// @en 401 unauthorized
-//
-// @zh 401 未授权
+// 401 未授权
 func Unauthorized(w *Response, r Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 
@@ -218,9 +209,7 @@ func Unauthorized(w *Response, r Request) {
 	w.Html(errorPage(errorHtml))
 }
 
-// @en 403 forbidden
-//
-// @zh 403 禁止访问
+// 403 禁止访问
 func Forbidden(w *Response, r Request) {
 	w.WriteHeader(http.StatusForbidden)
 
@@ -238,9 +227,7 @@ func Forbidden(w *Response, r Request) {
 	w.Html(errorPage(errorHtml))
 }
 
-// @en 500 internal server error
-//
-// @zh 500 内部服务器错误
+// 500 内部服务器错误
 func InternalServerError(w *Response, r Request, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 
@@ -258,9 +245,8 @@ func InternalServerError(w *Response, r Request, err error) {
 	w.Html(errorPage(errorHtml))
 }
 
-// @zh 400 bad request
-//
-// @zh 400 请求错误
+// 400 bad request
+// 400 请求错误
 func BadRequest(w *Response, r Request, err error) {
 	w.WriteHeader(http.StatusBadRequest)
 

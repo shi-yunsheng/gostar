@@ -23,12 +23,10 @@ type goStar struct {
 	router  *router.Router
 }
 
-// @en new goStar instance
-//
-// @zh 新建GoStar实例
+// 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance := &goStar{
-		version: "1.0.9-beta-beta",
+		version: "1.0.10-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
@@ -36,13 +34,11 @@ func New(configName ...string) *goStar {
 	return instance
 }
 
-// @en new goStar instance once
-//
-// @zh 新建唯一GoStar实例
+// 新建唯一GoStar实例
 func NewOnce(configName ...string) *goStar {
 	once.Do(func() {
 		instance = &goStar{
-			version: "1.0.9-beta-beta",
+			version: "1.0.10-beta",
 			config:  getConfig(configName...),
 			router:  router.NewRouter(),
 		}
@@ -52,12 +48,9 @@ func NewOnce(configName ...string) *goStar {
 	return instance
 }
 
-// @en init goStar
-//
-// @zh 初始化GoStar
+// 初始化GoStar
 func (g *goStar) initGoStar() {
-	// @en if debug mode is enabled, enable debug mode in all components
-	// @zh 如果调试模式已开启，则开启各个组件的调试模式
+	// 如果调试模式已开启，则开启各个组件的调试模式
 	if g.config.Debug {
 		middleware.EnableDebug()
 		handler.EnableDebug()
@@ -67,10 +60,7 @@ func (g *goStar) initGoStar() {
 	g.initLog()
 	model.InitDB(g.config.Database)
 	model.InitRedis(g.config.Redis)
-
-	// @en use default router middleware
-	//
-	// @zh 使用默认路由中间件
+	// 使用默认路由中间件
 	g.router.UseMiddleware(
 		middleware.ErrorMiddleware,
 		middleware.LogMiddleware,
@@ -78,16 +68,12 @@ func (g *goStar) initGoStar() {
 	)
 }
 
-// @en returns the version of the goStar
-//
-// @zh 返回GoStar的版本
+// 返回GoStar的版本
 func (g *goStar) Version() string {
 	return g.version
 }
 
-// @en runs the goStar
-//
-// @zh 运行GoStar
+// 运行GoStar
 func (g *goStar) Run() error {
 	logger.I("GoStar is running on " + g.config.Bind)
 
@@ -99,17 +85,13 @@ func (g *goStar) Run() error {
 	return g.server.ListenAndServe()
 }
 
-// @en close goStar
-//
-// @zh 关闭GoStar
+// 关闭GoStar
 func (g *goStar) Close() error {
 	logger.Close()
 	return g.server.Close()
 }
 
-// @en get goStar context
-//
-// @zh 获取GoStar上下文
+// 获取GoStar上下文
 func GetContext() *goStar {
 	return instance
 }

@@ -10,52 +10,29 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// @en global config
-//
-// @zh 全局配置
+// 全局配置
 type config struct {
-	// @en debug mode
-	//
-	// @zh 调试模式
+	// 调试模式
 	Debug bool `yaml:"debug"`
-	// @en allowed origins
-	//
-	// @zh 允许的来源
+	// 允许的来源
 	AllowedOrigins []string `yaml:"allowed_origins"`
-	// @en bind address and port
-	//
-	// @zh 绑定地址和端口
+	// 绑定地址和端口
 	Bind string `yaml:"bind"`
-	// @en log config
-	//
-	// @zh 日志配置
+	// 日志配置
 	Log logConfig `yaml:"log"`
-	// @en timezone
-	//
-	// @zh 时区
+	// 时区
 	Timezone string `yaml:"timezone"`
-	// @en lang
-	//
-	// @zh 语言
+	// 语言
 	Lang string `yaml:"lang"`
-	// @en database config
-	//
-	// @zh 数据库配置
+	// 数据库配置
 	Database map[string]model.DBConfig `yaml:"database"`
-	// @en redis config
-	//
-	// @zh Redis配置
+	// Redis配置
 	Redis map[string]model.RedisConfig `yaml:"redis"`
-
-	// @en custom config
-	//
-	// @zh 自定义配置
+	// 自定义配置
 	Custom map[string]any
 }
 
-// @en generate default config
-//
-// @zh 生成默认配置
+// 生成默认配置
 func generateDefaultConfig(configName string) {
 	const defaultConfig = `# 调试模式，开启后会输出详细的调试信息
 debug: false
@@ -125,15 +102,12 @@ redis:
 	_ = os.WriteFile(configName, []byte(defaultConfig), 0644)
 }
 
-// @en get config
-//
-// @zh 获取配置
+// 获取配置
 func getConfig(name ...string) *config {
 	configName := "config.yaml"
 	if len(name) > 0 {
 		configName = name[0]
-		// @en if config name not end with .yaml, add it
-		// @zh 如果配置名不以.yaml结尾，添加它
+		// 如果配置名不以.yaml结尾，添加它
 		if !strings.HasSuffix(configName, ".yaml") {
 			configName = configName + ".yaml"
 		}
@@ -149,36 +123,26 @@ func getConfig(name ...string) *config {
 	if err != nil {
 		panic("read config file failed: " + err.Error())
 	}
-
-	// @en first parse: parse to struct (framework config)
-	// @zh 第一次解析：解析到结构体（框架配置）
+	// 第一次解析：解析到结构体（框架配置）
 	config := &config{}
 	if err := yaml.Unmarshal(data, config); err != nil {
 		panic("parse config file failed: " + err.Error())
 	}
-
-	// @en second parse: parse to map (all config)
-	// @zh 第二次解析：解析到map（所有配置）
+	// 第二次解析：解析到map（所有配置）
 	var allConfig map[string]any
 	if err := yaml.Unmarshal(data, &allConfig); err != nil {
 		panic("parse config file failed: " + err.Error())
 	}
-
-	// @en get framework field names using reflection
-	// @zh 通过反射获取框架字段名
+	// 通过反射获取框架字段名
 	knownFields := getStructYamlTags(config)
-
-	// @en extract custom config (remove known framework fields)
-	// @zh 提取自定义配置（删除框架已知字段）
+	// 提取自定义配置（删除框架已知字段）
 	config.Custom = make(map[string]any)
 	for key, value := range allConfig {
 		if !containsString(knownFields, key) {
 			config.Custom[key] = value
 		}
 	}
-
-	// @en if user uses custom field, merge it
-	// @zh 如果用户使用了custom字段，合并进去
+	// 如果用户使用了custom字段，合并进去
 	if customFromYaml, ok := allConfig["custom"].(map[string]any); ok {
 		for key, value := range customFromYaml {
 			config.Custom[key] = value
@@ -188,9 +152,7 @@ func getConfig(name ...string) *config {
 	return config
 }
 
-// @en get struct yaml tags using reflection
-//
-// @zh 使用反射获取结构体的yaml标签
+// 使用反射获取结构体的yaml标签
 func getStructYamlTags(v any) []string {
 	var tags []string
 	t := reflect.TypeOf(v)
@@ -202,8 +164,7 @@ func getStructYamlTags(v any) []string {
 		field := t.Field(i)
 		yamlTag := field.Tag.Get("yaml")
 		if yamlTag != "" {
-			// @en extract tag name (remove options like omitempty)
-			// @zh 提取标签名（去掉选项，如omitempty）
+			// 提取标签名（去掉选项，如omitempty）
 			if idx := strings.Index(yamlTag, ","); idx != -1 {
 				yamlTag = yamlTag[:idx]
 			}
@@ -215,9 +176,7 @@ func getStructYamlTags(v any) []string {
 	return tags
 }
 
-// @en check if string slice contains item
-//
-// @zh 检查字符串切片是否包含项
+// 检查字符串切片是否包含项
 func containsString(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -227,9 +186,7 @@ func containsString(slice []string, item string) bool {
 	return false
 }
 
-// @en get custom config value by path (supports nested keys like "upload.maxsize")
-//
-// @zh 通过路径获取自定义配置值（支持嵌套键，如 "upload.maxsize"）
+// 通过路径获取自定义配置值（支持嵌套键，如 "upload.maxsize"）
 func getConfigValue(custom map[string]any, path string, defaultVal ...any) any {
 	if custom == nil {
 		if len(defaultVal) > 0 {
@@ -262,9 +219,7 @@ func getConfigValue(custom map[string]any, path string, defaultVal ...any) any {
 	return current
 }
 
-// @en get custom config by path (supports nested keys like "upload.maxsize")
-//
-// @zh 通过路径获取自定义配置（支持嵌套键，如 "upload.maxsize"）
+// 通过路径获取自定义配置（支持嵌套键，如 "upload.maxsize"）
 func (g *goStar) GetConfig(path string, defaultVal ...any) any {
 	if g.config == nil {
 		if len(defaultVal) > 0 {
@@ -275,9 +230,7 @@ func (g *goStar) GetConfig(path string, defaultVal ...any) any {
 	return getConfigValue(g.config.Custom, path, defaultVal...)
 }
 
-// @en get custom config string by path
-//
-// @zh 通过路径获取自定义配置字符串
+// 通过路径获取自定义配置字符串
 func (g *goStar) GetConfigString(path string, defaultVal ...string) string {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -295,9 +248,7 @@ func (g *goStar) GetConfigString(path string, defaultVal ...string) string {
 	return ""
 }
 
-// @en get custom config int by path
-//
-// @zh 通过路径获取自定义配置整数
+// 通过路径获取自定义配置整数
 func (g *goStar) GetConfigInt(path string, defaultVal ...int) int {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -315,9 +266,7 @@ func (g *goStar) GetConfigInt(path string, defaultVal ...int) int {
 	return 0
 }
 
-// @en get custom config bool by path
-//
-// @zh 通过路径获取自定义配置布尔值
+// 通过路径获取自定义配置布尔值
 func (g *goStar) GetConfigBool(path string, defaultVal ...bool) bool {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -335,9 +284,7 @@ func (g *goStar) GetConfigBool(path string, defaultVal ...bool) bool {
 	return false
 }
 
-// @en get custom config float by path
-//
-// @zh 通过路径获取自定义配置浮点数
+// 通过路径获取自定义配置浮点数
 func (g *goStar) GetConfigFloat(path string, defaultVal ...float64) float64 {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -346,8 +293,7 @@ func (g *goStar) GetConfigFloat(path string, defaultVal ...float64) float64 {
 		}
 		return 0
 	}
-	// @en YAML may parse as float64 or int
-	// @zh YAML可能解析为float64或int
+	// YAML可能解析为float64或int
 	switch v := val.(type) {
 	case float64:
 		return v
@@ -362,9 +308,7 @@ func (g *goStar) GetConfigFloat(path string, defaultVal ...float64) float64 {
 	return 0
 }
 
-// @en get custom config map by path
-//
-// @zh 通过路径获取自定义配置映射
+// 通过路径获取自定义配置映射
 func (g *goStar) GetConfigMap(path string) map[string]any {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -376,9 +320,7 @@ func (g *goStar) GetConfigMap(path string) map[string]any {
 	return nil
 }
 
-// @en get custom config slice by path
-//
-// @zh 通过路径获取自定义配置切片
+// 通过路径获取自定义配置切片
 func (g *goStar) GetConfigSlice(path string) []any {
 	val := g.GetConfig(path)
 	if val == nil {
@@ -390,9 +332,7 @@ func (g *goStar) GetConfigSlice(path string) []any {
 	return nil
 }
 
-// @en get custom config string slice by path
-//
-// @zh 通过路径获取自定义配置字符串切片
+// 通过路径获取自定义配置字符串切片
 func (g *goStar) GetConfigStringSlice(path string) []string {
 	val := g.GetConfig(path)
 	if val == nil {

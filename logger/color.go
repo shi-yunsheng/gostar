@@ -16,9 +16,7 @@ const (
 	logNormal = "\033[0m"        // normal
 )
 
-// @en get log level color
-//
-// @zh 获取日志级别颜色
+// 获取日志级别颜色
 func getLogLevelColor(level string) string {
 	switch level {
 	case "INFO":
@@ -36,18 +34,12 @@ func getLogLevelColor(level string) string {
 	}
 }
 
-// @en get log level message
-//
-// @zh 获取日志级别消息
+// 获取日志级别消息
 func getLogLevelMessage(level string, message string) string {
 	color := getLogLevelColor(level)
-
-	// @en get datetime by date format
-	// @zh 根据日期格式获取日期时间
+	// 根据日期格式获取日期时间
 	datetime := date.GetToday(dateFormat)
-
-	// @en use log format
-	// @zh 使用日志格式
+	// 使用日志格式
 	message = fmt.Sprintf(logFormat, datetime, level[0:1], message)
 
 	return color + message + logReset

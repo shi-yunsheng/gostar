@@ -6,9 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// @en insert data
-//
-// @zh 插入方法
+// 插入方法
 func Insert[T any](data map[string]any, dbName ...string) error {
 	model, err := parseData[T](data)
 	if err != nil {
@@ -24,9 +22,7 @@ func Insert[T any](data map[string]any, dbName ...string) error {
 	return nil
 }
 
-// @en update data
-//
-// @zh 更新方法
+// 更新方法
 func Update[T any](queryConditions map[string]any, data map[string]any, dbName ...string) error {
 	model, err := parseData[T](data)
 	if err != nil {
@@ -46,9 +42,7 @@ func Update[T any](queryConditions map[string]any, data map[string]any, dbName .
 	return nil
 }
 
-// @en delete data
-//
-// @zh 删除方法
+// 删除方法
 func Delete[T any](queryConditions map[string]any, isHardDelete bool, dbName ...string) error {
 	query, err := buildBaseQuery[T](queryConditions, dbName...)
 	if err != nil {
@@ -69,9 +63,7 @@ func Delete[T any](queryConditions map[string]any, isHardDelete bool, dbName ...
 	return nil
 }
 
-// @en query data
-//
-// @zh 查询方法
+// 查询方法
 func Query[T any](queryConditions map[string]any, dbName ...string) ([]T, error) {
 	query, err := buildBaseQuery[T](queryConditions, dbName...)
 	if err != nil {
@@ -87,20 +79,14 @@ func Query[T any](queryConditions map[string]any, dbName ...string) ([]T, error)
 	return result, nil
 }
 
-// @en batch insert data
-//
-// @zh 批量插入
+// 批量插入
 func BatchInsert[T any](data []map[string]any, dbName ...string) error {
 	if len(data) == 0 {
 		return fmt.Errorf("batch insert data cannot be empty")
 	}
-
-	// @en default batch size
-	// @zh 默认批次大小
+	// 默认批次大小
 	size := 100
-
-	// @en pre-allocate slice capacity
-	// @zh 预分配切片容量
+	// 预分配切片容量
 	models := make([]T, 0, len(data))
 	for i, item := range data {
 		model, err := parseData[T](item)
@@ -109,9 +95,7 @@ func BatchInsert[T any](data []map[string]any, dbName ...string) error {
 		}
 		models = append(models, model)
 	}
-
-	// @en batch insert
-	// @zh 分批插入
+	// 分批插入
 	db := getDBClient(dbName...)
 	err := db.db.CreateInBatches(&models, size).Error
 	if err != nil {
@@ -121,9 +105,7 @@ func BatchInsert[T any](data []map[string]any, dbName ...string) error {
 	return nil
 }
 
-// @en query first record
-//
-// @zh 查询第一条
+// 查询第一条
 func First[T any](queryConditions map[string]any, dbName ...string) (T, error) {
 	var result T
 	query, err := buildBaseQuery[T](queryConditions, dbName...)
@@ -139,9 +121,7 @@ func First[T any](queryConditions map[string]any, dbName ...string) (T, error) {
 	return result, nil
 }
 
-// @en count records
-//
-// @zh 计数方法
+// 计数方法
 func Count[T any](queryConditions map[string]any, dbName ...string) (int64, error) {
 	var query *gorm.DB
 	var err error
@@ -169,9 +149,7 @@ func Count[T any](queryConditions map[string]any, dbName ...string) (int64, erro
 	return count, nil
 }
 
-// @en query with deleted records
-//
-// @zh 软删除查询
+// 软删除查询
 func QueryWithDeleted[T any](queryConditions map[string]any, includeDeleted bool, dbName ...string) ([]T, error) {
 	query, err := buildBaseQuery[T](queryConditions, dbName...)
 	if err != nil {

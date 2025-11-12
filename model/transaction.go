@@ -4,9 +4,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// @en transaction support
-//
-// @zh 事务支持
+// 事务支持
 func WithTransaction[T any](fn func(*gorm.DB) (T, error), txConfig *TxConfig, dbName ...string) (T, error) {
 	var result T
 

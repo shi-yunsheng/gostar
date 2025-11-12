@@ -2,17 +2,13 @@ package utils
 
 import "net"
 
-// @en check if IP is private
-//
-// @zh 检查IP是否为私有地址
+// 检查IP是否为私有地址
 func IsPrivateIP(ipStr string) bool {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return false
 	}
-
-	// @en check private IP ranges
-	// @zh 检查私有IP范围
+	// 检查私有IP范围
 	private := []string{
 		"10.0.0.0/8",     // Class A private
 		"172.16.0.0/12",  // Class B private

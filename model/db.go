@@ -19,39 +19,27 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-// @en DB config
-//
-// @zh DB配置
+// DB配置
 type DBConfig struct {
-	// @en database driver
-	// @zh 数据库驱动
+	// 数据库驱动
 	Driver string `yaml:"driver"`
-	// @en database dsn, if exists, other database configs are invalid
-	// @zh 数据库连接字符串，如果存在，则数据库其他配置无效
+	// 数据库连接字符串，如果存在，则数据库其他配置无效
 	DSN string `yaml:"dsn"`
-	// @en database table prefix
-	// @zh 数据库表前缀
+	// 数据库表前缀
 	TablePrefix string `yaml:"table_prefix"`
-	// @en database host
-	// @zh 数据库主机
+	// 数据库主机
 	Host string `yaml:"host"`
-	// @en database port
-	// @zh 数据库端口
+	// 数据库端口
 	Port int `yaml:"port"`
-	// @en database user
-	// @zh 数据库用户
+	// 数据库用户
 	User string `yaml:"user"`
-	// @en database password
-	// @zh 数据库密码
+	// 数据库密码
 	Password string `yaml:"password"`
-	// @en database db
-	// @zh 数据库
+	// 数据库
 	Database string `yaml:"database"`
 }
 
-// @en database client
-//
-// @zh 数据库客户端
+// 数据库客户端
 type DBClient struct {
 	db     *gorm.DB
 	mongo  *mongo.Database
@@ -64,9 +52,7 @@ var (
 	dbMapLock sync.RWMutex
 )
 
-// @en initialize database
-//
-// @zh 初始化数据库
+// 初始化数据库
 func InitDB(config map[string]DBConfig) {
 	if len(config) == 0 {
 		return
@@ -80,8 +66,7 @@ func InitDB(config map[string]DBConfig) {
 	for name, config := range config {
 		switch config.Driver {
 		case "mysql", "postgres", "sqlite":
-			// @en if DSN is not set, generate DSN
-			// @zh 如果DSN未设置，则生成DSN
+			// 如果DSN未设置，则生成DSN
 			if strings.TrimSpace(config.DSN) == "" {
 				config.DSN = generateDSN(config)
 			}
@@ -101,9 +86,7 @@ func InitDB(config map[string]DBConfig) {
 			if err != nil {
 				panic("failed to connect to database " + name + ": " + err.Error())
 			}
-
-			// @en set table prefix
-			// @zh 设置表前缀
+			// 设置表前缀
 			if config.TablePrefix != "" {
 				db.NamingStrategy = schema.NamingStrategy{
 					TablePrefix: config.TablePrefix,
@@ -125,18 +108,14 @@ func InitDB(config map[string]DBConfig) {
 			if err != nil {
 				panic("failed to connect to MongoDB " + name + ": " + err.Error())
 			}
-
-			// @en test connection
-			// @zh 测试连接
+			// 测试连接
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			err = client.Ping(ctx, nil)
 			if err != nil {
 				panic("failed to ping MongoDB " + name + ": " + err.Error())
 			}
-
-			// @en get database
-			// @zh 获取数据库
+			// 获取数据库
 			databaseName := config.Database
 			if databaseName == "" {
 				databaseName = fmt.Sprintf("db%s", config.Database)
@@ -153,9 +132,7 @@ func InitDB(config map[string]DBConfig) {
 	}
 }
 
-// @en generate DSN
-//
-// @zh 根据数据库类型生成对应的DSN
+// 根据数据库类型生成对应的DSN
 func generateDSN(config DBConfig) string {
 	switch config.Driver {
 	case "mysql":
@@ -171,9 +148,7 @@ func generateDSN(config DBConfig) string {
 	}
 }
 
-// @en generate MongoDB DSN
-//
-// @zh 生成MongoDB连接字符串
+// 生成MongoDB连接字符串
 func generateMongoDSN(config DBConfig) string {
 	if config.User != "" && config.Password != "" {
 		return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s",
@@ -183,9 +158,7 @@ func generateMongoDSN(config DBConfig) string {
 		config.Host, config.Port, config.Database)
 }
 
-// @en get database
-//
-// @zh 获取数据库
+// 获取数据库
 func GetDB(name ...string) *DBClient {
 	if dbMap == nil {
 		panic("database not initialized")
@@ -205,9 +178,7 @@ func GetDB(name ...string) *DBClient {
 	return dbMap[name[0]]
 }
 
-// @en auto migrate database
-//
-// @zh 自动迁移数据库
+// 自动迁移数据库
 func (d *DBClient) AutoMigrate(models ...any) error {
 	if d.models == nil {
 		d.models = make(map[string]any)

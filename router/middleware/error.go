@@ -10,24 +10,18 @@ import (
 
 var debug = false
 
-// @en enable debug mode
-//
-// @zh 开启调试模式
+// 开启调试模式
 func EnableDebug() {
 	debug = true
 }
 
-// @en error middleware
-//
-// @zh 错误处理中间件
+// 错误处理中间件
 func ErrorMiddleware(next handler.Handler) handler.Handler {
-	return func(w *handler.Response, r handler.Request) {
+	return func(w *handler.Response, r handler.Request) any {
 		defer func() {
 			if err := recover(); err != nil {
 				logger.E("Error: %v", err)
-
-				// @en if in debug mode, also return stack info to client
-				// @zh 如果在调试模式下，也将堆栈信息返回给客户端
+				// 如果在调试模式下，也将堆栈信息返回给客户端
 				if debug {
 					stackInfo := utils.GetStackTrace()
 
@@ -44,7 +38,11 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 						if r.Method == "GET" {
 							handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
 						} else {
-							w.Error(fmt.Errorf("internal server error: %v\n\nstack info: %s", err, stackInfo))
+							w.Json(map[string]any{
+								"error":   "internal server error",
+								"message": err,
+								"stack":   stackInfo,
+							})
 						}
 					}
 					return
@@ -61,13 +59,15 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 					if r.Method == "GET" {
 						handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
 					} else {
-						w.Error(fmt.Errorf("internal server error: %v", err))
+						w.Json(map[string]any{
+							"error":   "internal server error",
+							"message": err,
+						})
 					}
 				}
 			}
 		}()
-
-		// 继续处理请求
-		next(w, r)
+		// 继续处理请求并返回结果
+		return next(w, r)
 	}
 }

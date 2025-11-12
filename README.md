@@ -1,199 +1,135 @@
 # GoStar
 
-GoStar is a lightweight, feature-rich Go web framework designed to provide clean APIs and powerful functionality to help developers quickly build web applications.
+GoStar 是一个轻量级、功能完善的 Go Web 框架，提供简明友好的 API，帮助你在最短时间内搭建生产可用的 Web 服务。
 
-## Features
+## 特性概览
+- 🚀 **快速上手**：直观的 API 设计与合理的默认值，几分钟即可跑通项目。 
+- 🛣️ **灵活路由**：支持嵌套路由、正则路由、可选路径参数与路由级中间件。 
+- 🔌 **中间件体系**：内置错误恢复、访问日志、CORS、速率限制等常用中间件，可按需拓展。 
+- 📡 **自动响应**：处理器直接返回 `any`，框架自动封装为 JSON；若已手动写入响应体则不会重复输出。 
+- 🌐 **静态 & SPA & WebSocket**：同一套路由体系即可承载静态资源、单页应用以及 WebSocket 实时通信。 
+- 💾 **数据接入**：原生支持 MySQL、PostgreSQL、SQLite、MongoDB 与 Redis，提供统一的初始化流程。 
+- 🪵 **日志系统**：彩色控制台输出、文件保存、自动归档与清理，满足开发到生产的日志需求。 
+- ⚙️ **配置中心**：内置 YAML 配置解析，首次启动自动生成示例配置文件。 
+- ⚡ **稳定高效**：基于标准库 `net/http` 构建，核心实现简洁可靠。 
 
-- 🚀 **Simple & Easy** - Intuitive API design for quick start
-- 🛣️ **Flexible Routing** - RESTful routing, route groups, and middleware support
-- 🔌 **Powerful Middleware** - Built-in CORS, logging, error handling, rate limiting, and more
-- 💾 **Multi-Database Support** - MySQL, PostgreSQL, SQLite, and MongoDB
-- 📦 **Redis Integration** - Built-in Redis support for caching and session management
-- 📝 **Advanced Logging** - Colorful console output, file saving, and auto-archiving
-- 🔒 **Request Validation** - Built-in parameter parsing and validation
-- 📤 **File Upload** - Simple file upload handling
-- 🌐 **WebSocket Support** - Easy real-time communication
-- 🎨 **Static File Serving** - Support for static files and SPA hosting
-- ⚡ **High Performance** - Based on standard `net/http` library
-
-## Installation
-
+## 安装
 ```bash
-go get -u github.com/shi-yunsheng/gostar@v1.0.9-beta
+go get -u github.com/shi-yunsheng/gostar@v1.0.10-beta
 ```
 
-## Quick Start
-
+## 快速开始
 ```go
 package main
 
 import (
+    "fmt"
+
     "github.com/shi-yunsheng/gostar"
+    "github.com/shi-yunsheng/gostar/logger"
+    "github.com/shi-yunsheng/gostar/router"
+    "github.com/shi-yunsheng/gostar/router/handler"
 )
 
 func main() {
-    // Create GoStar instance
     app := gostar.New()
-    
-    // Start server
-    app.Run()
+
+    app.UseRouter([]router.Route{
+        {
+            Method: router.GET,
+            Path:   "/ping",
+            Handler: func(w *handler.Response, r handler.Request) any {
+                return map[string]string{"message": "pong"}
+            },
+        },
+        {
+            Method: router.GET,
+            Path:   "/hello/{name?:str}",
+            Handler: func(w *handler.Response, r handler.Request) any {
+                name, _ := r.GetParam("name").(string)
+                if name == "" {
+                    name = "gostar"
+                }
+                return map[string]string{
+                    "greeting": fmt.Sprintf("Hello %s", name),
+                }
+            },
+        },
+        {
+            Method: router.GET,
+            Path:   "/error",
+            Handler: func(w *handler.Response, r handler.Request) any {
+                panic("demo error")
+            },
+        },
+    })
+
+    if err := app.Run(); err != nil {
+        logger.E("failed to run server: %v", err)
+    }
 }
 ```
 
-## Core Features
+## 框架能力
+### 路由系统
+- 支持静态路由、正则路由、路径参数（含可选参数与默认值）以及多级嵌套。
+- 路由节点可单独指定中间件、静态资源托管、WebApp 预处理或 WebSocket 升级配置。
+- 内置多语言路径参数校验，自动将匹配结果写入 `handler.Request` 供处理器读取。
 
-### Configuration Management
+### 中间件
+- 框架默认启用错误恢复、请求日志、CORS 三个全局中间件。
+- 通过 `UseMiddleware` 与路由级 `Middleware` 字段即可实现“洋葱模型”处理链。
+- 官方提供的 `middleware.RateLimitMiddleware` 可快速实现 IP + 路径粒度的限流保护。
 
-GoStar uses YAML format configuration file (`config.yaml`). A default config file will be generated automatically on first run.
+### 请求 / 响应处理
+- 处理器签名：`type Handler func(w *Response, r Request) any`。
+- 若处理器未写入响应体，返回值会被自动序列化为 JSON。
+- 内置 `Response` 对象可方便地写入 JSON / HTML / Text、管理响应头、获取 WebSocket 连接等。
+- 通过 `Request` 对象即可访问路径参数、查询参数、请求体、上传文件以及 WebSocket 状态。
 
-Configuration options include:
-- **debug** - Debug mode
-- **bind** - Server bind address and port
-- **allowed_origins** - CORS allowed origins
-- **log** - Logging configuration (console output, file saving, auto-cleanup, etc.)
-- **timezone** - Timezone setting
-- **lang** - Language setting
-- **database** - Database configuration (supports multiple database connections)
-- **redis** - Redis configuration (supports multiple instance connections)
+### 静态资源、WebApp 与 WebSocket
+- `handler.StaticServer` 支持限速下载、类型白名单、上传目录与回调等高级能力。
+- `handler.WebApp` 可为 SPA 自动兜底未命中的子路径，天然支持 History / Hash 模式。
+- `handler.ToWebsocketHandler` 简化 WebSocket 升级流程，提供线程安全的消息读写封装。
 
-### Routing System
+### 数据与配置
+- `model` 模块提供数据库初始化、CRUD 扩展、分页、关联查询等能力，兼容 GORM 与 MongoDB。
+- `model.InitRedis` 支持多实例配置，内置常见的连接与超时控制选项。
+- `config.go` 内置 YAML 配置解析逻辑，启动时自动加载并注入到框架上下文。
 
-GoStar provides a flexible routing system with support for:
+### 日志系统
+- `logger` 模块原生支持彩色输出、文件保存、最大文件大小、最大保存天数与自动删除策略。
+- 与框架深度集成：初始化阶段根据配置自动开启或关闭相关功能。
 
-- RESTful style routes
-- Path parameters (e.g., `/user/:id`)
-- Query parameters
-- Route groups
-- Route-level middleware
-
-### Middleware
-
-Built-in middleware:
-- **CORS Middleware** - Cross-origin resource sharing support
-- **Logging Middleware** - Automatic request logging
-- **Error Handling Middleware** - Unified error handling
-- **Rate Limiting Middleware** - API access rate control
-
-### Database ORM
-
-Based on GORM and MongoDB driver, providing unified database operation interface:
-
-- Support for MySQL, PostgreSQL, SQLite, MongoDB
-- Auto database migration
-- Query builder
-- Transaction support
-- Association queries
-- Pagination support
-
-### Redis
-
-Built-in Redis support with convenient cache operations:
-
-- Multiple Redis instance management
-- Key-value operations
-- Expiration time setting
-- Key prefix support
-
-### Logging System
-
-Feature-rich logging system:
-
-- Multiple log levels (Debug, Info, Warning, Error, Fatal)
-- Colorful console output
-- File saving
-- Auto log archiving (by date)
-- Auto cleanup of expired logs
-- File size limitation
-
-### Request Handling
-
-Simplified request handling:
-
-- Auto parameter parsing (path params, query params, form, JSON)
-- Parameter validation
-- File upload handling
-- Cookie management
-- Session support
-
-### Response Handling
-
-Convenient response methods:
-
-- JSON response
-- HTML response
-- File download
-- Redirect
-- Error response
-
-### WebSocket
-
-Built-in WebSocket support:
-
-- Simple connection management
-- Message sending and receiving
-- Connection pool management
-
-### Static File Serving
-
-- Static file hosting
-- SPA application support
-- File upload directory
-
-### Utility Functions
-
-Common utility functions provided:
-
-- File operations
-- IP address handling
-- String processing
-- Slice operations
-- UUID generation
-- Date/time processing
-
-## Project Structure
-
+## 项目结构
 ```
 gostar/
-├── config.go           # Configuration management
-├── gostar.go          # Core framework
-├── date/              # Date/time handling
-├── logger/            # Logging system
-├── model/             # Database ORM
-│   ├── db.go         # Database connection
-│   ├── crud.go       # CRUD operations
-│   ├── query_builder.go  # Query builder
-│   ├── pagination.go  # Pagination
-│   └── redis.go      # Redis support
-├── router/            # Routing system
-│   ├── router.go     # Router core
-│   ├── route.go      # Route definitions
-│   ├── handler/      # Request handlers
-│   └── middleware/   # Middleware
-└── utils/             # Utility functions
+├── gostar.go          # 框架入口与生命周期控制
+├── config.go          # 配置解析处理
+├── router/            # 路由系统
+│   ├── router.go      # Router 实现
+│   ├── route.go       # 路由配置结构
+│   ├── path.go        # 路径解析与参数提取
+│   ├── handler/       # 请求处理、响应封装、静态/WS/WebApp 支持
+│   └── middleware/    # 框架内置中间件
+├── model/             # 数据库 / Redis 支持
+├── logger/            # 日志系统
+├── utils/             # 通用工具函数与辅助方法
+└── demo/              # 示例程序
 ```
 
-## Requirements
+## 系统要求
+- Go 1.25.0 或更高版本。
 
-- Go 1.25.0 or higher
+## 依赖
+- `gorm.io/gorm`
+- `go.mongodb.org/mongo-driver`
+- `github.com/go-redis/redis`
+- `github.com/gorilla/websocket`
+- `gopkg.in/yaml.v3`
 
-## Dependencies
+## 许可证
+采用 MIT 许可证。
 
-Main dependencies:
-- `gorm.io/gorm` - ORM framework
-- `go.mongodb.org/mongo-driver` - MongoDB driver
-- `github.com/go-redis/redis` - Redis client
-- `github.com/gorilla/websocket` - WebSocket support
-- `gopkg.in/yaml.v3` - YAML configuration parsing
-
-## License
-
-This project is licensed under the MIT License.
-
-## Contributing
-
-Issues and Pull Requests are welcome!
-
-## Version
-
-Current version: v1.0.9-beta
-
+## 贡献
+欢迎提交 Issue 与 Pull Request！

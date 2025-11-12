@@ -11,18 +11,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// @en websocket connection
-//
-// @zh websocket连接
+// websocket连接
 type WebsocketConn struct {
 	ws        *websocket.Conn
 	mutex     sync.Mutex
 	readMutex sync.Mutex
 }
 
-// @en new websocket connection
-//
-// @zh 新建websocket连接
+// 新建websocket连接
 func NewWebsocketConn(ws *websocket.Conn) *WebsocketConn {
 	return &WebsocketConn{
 		ws:    ws,
@@ -30,16 +26,12 @@ func NewWebsocketConn(ws *websocket.Conn) *WebsocketConn {
 	}
 }
 
-// @en get websocket connection status
-//
-// @zh 获取websocket连接状态
+// 获取websocket连接状态
 func (w *WebsocketConn) GetConnStatus() bool {
 	return w.ws != nil
 }
 
-// @en get websocket connection
-//
-// @zh 获取websocket连接
+// 获取websocket连接
 func (w *WebsocketConn) GetConn() *websocket.Conn {
 	if w.ws == nil {
 		return nil
@@ -48,16 +40,12 @@ func (w *WebsocketConn) GetConn() *websocket.Conn {
 	return w.ws
 }
 
-// @en get mutex
-//
-// @zh 获取互斥锁
+// 获取互斥锁
 func (w *WebsocketConn) GetMutex() *sync.Mutex {
 	return &w.mutex
 }
 
-// @en close websocket
-//
-// @zh 关闭websocket连接
+// 关闭websocket连接
 func (w *WebsocketConn) Close() {
 	if w.ws == nil {
 		return
@@ -66,9 +54,7 @@ func (w *WebsocketConn) Close() {
 	w.ws.Close()
 }
 
-// @en send text message
-//
-// @zh 发送文本消息
+// 发送文本消息
 func (w *WebsocketConn) SendMessage(message string) error {
 	if w.ws == nil {
 		return errors.New("websocket connection not found")
@@ -80,9 +66,7 @@ func (w *WebsocketConn) SendMessage(message string) error {
 	return w.ws.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
-// @en send binary message
-//
-// @zh 发送二进制消息
+// 发送二进制消息
 func (w *WebsocketConn) SendBinary(bytes []byte) error {
 	if w.ws == nil {
 		return errors.New("websocket connection not found")
@@ -94,9 +78,7 @@ func (w *WebsocketConn) SendBinary(bytes []byte) error {
 	return w.ws.WriteMessage(websocket.BinaryMessage, bytes)
 }
 
-// @en send json message
-//
-// @zh 发送JSON消息
+// 发送JSON消息
 func (w *WebsocketConn) SendJson(data any) error {
 	if w.ws == nil {
 		return errors.New("websocket connection not found")
@@ -108,9 +90,7 @@ func (w *WebsocketConn) SendJson(data any) error {
 	return w.ws.WriteJSON(data)
 }
 
-// @en send file
-//
-// @zh 发送文件
+// 发送文件
 func (w *WebsocketConn) SendFile(filepath string) error {
 	if w.ws == nil {
 		return errors.New("websocket connection not found")
@@ -144,9 +124,7 @@ func (w *WebsocketConn) SendFile(filepath string) error {
 	return nil
 }
 
-// @en get message
-//
-// @zh 获取消息
+// 获取消息
 func (w *WebsocketConn) GetMessage() (messageType int, message string, err error) {
 	if w.ws == nil {
 		return 0, "", errors.New("websocket connection not found")
@@ -159,9 +137,7 @@ func (w *WebsocketConn) GetMessage() (messageType int, message string, err error
 	return mt, string(msg), e
 }
 
-// @en check if websocket is close error
-//
-// @zh 判断是否是WebSocket关闭错误
+// 判断是否是WebSocket关闭错误
 func (w *WebsocketConn) IsCloseError(err error) bool {
 	closeErr, ok := err.(*websocket.CloseError)
 
@@ -193,9 +169,7 @@ func (w *WebsocketConn) IsCloseError(err error) bool {
 }
 
 var (
-	// @en default websocket config
-	//
-	// @zh 默认websocket配置
+	// 默认websocket配置
 	defaultWebsocketUpgrade = &websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -203,11 +177,9 @@ var (
 	}
 )
 
-// @en convert handler to websocket handler
-//
-// @zh 将handler转换为websocket handler
+// 将handler转换为websocket handler
 func ToWebsocketHandler(handler Handler, websocketUpgrade *websocket.Upgrader) Handler {
-	return func(w *Response, r Request) {
+	return func(w *Response, r Request) any {
 		if r.IsWebsocket() && w.GetWebsocketConn() == nil {
 			upgrader := defaultWebsocketUpgrade
 			if websocketUpgrade != nil {
@@ -216,11 +188,11 @@ func ToWebsocketHandler(handler Handler, websocketUpgrade *websocket.Upgrader) H
 
 			ws, err := upgrader.Upgrade(w.ResponseWriter, r.Request, nil)
 			if err != nil {
-				return
+				return nil
 			}
 			w.ws = NewWebsocketConn(ws)
 		}
 
-		handler(w, r)
+		return handler(w, r)
 	}
 }

@@ -6,9 +6,7 @@ import (
 	"github.com/shi-yunsheng/gostar/logger"
 )
 
-// @en Log config
-//
-// @zh 日志配置
+// 日志配置
 type logConfig struct {
 	EnablePrint      bool   `yaml:"enable_print"`
 	EnableSave       bool   `yaml:"enable_save"`
@@ -18,9 +16,7 @@ type logConfig struct {
 	MaxFileSize      string `yaml:"max_file_size"`
 }
 
-// @en init log
-//
-// @zh 初始化日志
+// 初始化日志
 func (g *goStar) initLog() {
 	config := g.config.Log
 

@@ -211,6 +211,25 @@ func (r *Request) GetHeader(key string) string {
 	return r.Header.Get(key)
 }
 
+// 获取Cookies
+func (r *Request) GetCookies() map[string]string {
+	cookies := r.Cookies()
+	result := make(map[string]string)
+	for _, cookie := range cookies {
+		result[cookie.Name] = cookie.Value
+	}
+	return result
+}
+
+// 获取Cookie
+func (r *Request) GetCookie(key string) string {
+	cookies := r.GetCookies()
+	if val, ok := cookies[key]; ok {
+		return val
+	}
+	return ""
+}
+
 // 判断是否是WebSocket连接
 func (r *Request) IsWebsocket() bool {
 	return r.Method == "GET" &&

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -82,6 +83,16 @@ func (w *Response) GetResponse() []byte {
 func (w *Response) SetResponse(body []byte) (int, error) {
 	w.body = append(w.body, body...)
 	return w.ResponseWriter.Write(body)
+}
+
+// 设置Cookie
+func (w *Response) SetCookie(key string, value string, maxAge int) {
+	w.SetHeader("Set-Cookie", fmt.Sprintf("%s=%s; Max-Age=%d", key, value, maxAge))
+}
+
+// 删除Cookie
+func (w *Response) DeleteCookie(key string) {
+	w.SetCookie(key, "", 0)
 }
 
 // 获取websocket连接

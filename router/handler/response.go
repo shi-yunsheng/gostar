@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -86,13 +85,31 @@ func (w *Response) SetResponse(body []byte) (int, error) {
 }
 
 // 设置Cookie
-func (w *Response) SetCookie(key string, value string, maxAge int) {
-	w.SetHeader("Set-Cookie", fmt.Sprintf("%s=%s; Max-Age=%d", key, value, maxAge))
+func (w *Response) SetCookie(key, value string, maxAge int) {
+	cookie := &http.Cookie{
+		Name:     key,
+		Value:    value,
+		MaxAge:   maxAge,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
 }
 
 // 删除Cookie
 func (w *Response) DeleteCookie(key string) {
-	w.SetCookie(key, "", 0)
+	cookie := &http.Cookie{
+		Name:     key,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
 }
 
 // 获取websocket连接

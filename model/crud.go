@@ -14,12 +14,7 @@ func Insert[T any](data map[string]any, dbName ...string) error {
 	}
 
 	db := getDBClient(dbName...)
-	err = db.db.Create(&model).Error
-	if err != nil {
-		return fmt.Errorf("failed to insert data: %w", err)
-	}
-
-	return nil
+	return db.db.Create(&model).Error
 }
 
 // 更新方法
@@ -34,12 +29,7 @@ func Update[T any](queryConditions map[string]any, data map[string]any, dbName .
 		return err
 	}
 
-	err = query.Updates(model).Error
-	if err != nil {
-		return fmt.Errorf("failed to update data: %w", err)
-	}
-
-	return nil
+	return query.Updates(model).Error
 }
 
 // 删除方法
@@ -56,11 +46,7 @@ func Delete[T any](queryConditions map[string]any, isHardDelete bool, dbName ...
 		err = query.Delete(&model).Error
 	}
 
-	if err != nil {
-		return fmt.Errorf("failed to delete data: %w", err)
-	}
-
-	return nil
+	return err
 }
 
 // 查询方法
@@ -72,11 +58,8 @@ func Query[T any](queryConditions map[string]any, dbName ...string) ([]T, error)
 
 	var result []T
 	err = query.Find(&result).Error
-	if err != nil {
-		return nil, fmt.Errorf("failed to query data: %w", err)
-	}
 
-	return result, nil
+	return result, err
 }
 
 // 批量插入
@@ -97,12 +80,8 @@ func BatchInsert[T any](data []map[string]any, dbName ...string) error {
 	}
 	// 分批插入
 	db := getDBClient(dbName...)
-	err := db.db.CreateInBatches(&models, size).Error
-	if err != nil {
-		return fmt.Errorf("failed to batch insert: %w", err)
-	}
 
-	return nil
+	return db.db.CreateInBatches(&models, size).Error
 }
 
 // 查询第一条
@@ -114,11 +93,8 @@ func First[T any](queryConditions map[string]any, dbName ...string) (T, error) {
 	}
 
 	err = query.First(&result).Error
-	if err != nil {
-		return result, fmt.Errorf("failed to query data: %w", err)
-	}
 
-	return result, nil
+	return result, err
 }
 
 // 计数方法
@@ -142,11 +118,8 @@ func Count[T any](queryConditions map[string]any, dbName ...string) (int64, erro
 
 	var count int64
 	err = query.Count(&count).Error
-	if err != nil {
-		return 0, fmt.Errorf("failed to count data: %w", err)
-	}
 
-	return count, nil
+	return count, err
 }
 
 // 软删除查询
@@ -162,9 +135,6 @@ func QueryWithDeleted[T any](queryConditions map[string]any, includeDeleted bool
 
 	var result []T
 	err = query.Find(&result).Error
-	if err != nil {
-		return nil, fmt.Errorf("failed to query data: %w", err)
-	}
 
-	return result, nil
+	return result, err
 }

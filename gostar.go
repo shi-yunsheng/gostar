@@ -2,7 +2,6 @@ package gostar
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/shi-yunsheng/gostar/logger"
 	"github.com/shi-yunsheng/gostar/model"
@@ -13,7 +12,6 @@ import (
 
 var (
 	instance *goStar
-	once     sync.Once
 )
 
 type goStar struct {
@@ -26,25 +24,11 @@ type goStar struct {
 // 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance := &goStar{
-		version: "1.0.10-beta",
+		version: "1.0.12-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
 	instance.initGoStar()
-	return instance
-}
-
-// 新建唯一GoStar实例
-func NewOnce(configName ...string) *goStar {
-	once.Do(func() {
-		instance = &goStar{
-			version: "1.0.10-beta",
-			config:  getConfig(configName...),
-			router:  router.NewRouter(),
-		}
-		instance.initGoStar()
-	})
-
 	return instance
 }
 

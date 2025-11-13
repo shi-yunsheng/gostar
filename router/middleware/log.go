@@ -20,7 +20,7 @@ func LogMiddleware(next handler.Handler) handler.Handler {
 		// 将客户端IP格式化为字符串
 		var clientIP string
 		if len(clientIPs) > 0 {
-			clientIP = clientIPs[0] // @en use first IP as primary
+			clientIP = clientIPs[0]
 			if len(clientIPs) > 1 {
 				clientIP = clientIP + " (+" + fmt.Sprintf("%d", len(clientIPs)-1) + " more)"
 			}

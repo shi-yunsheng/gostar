@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/shi-yunsheng/gostar/utils"
 )
+
+// contextKey 用于类型安全的 context key
+type contextKey string
 
 // 请求对象
 type Request struct {
@@ -183,7 +187,7 @@ func (r *Request) GetFile(key string, allowType []string) []*multipart.FileHeade
 			// 读取前512字节用于类型检测
 			buffer := make([]byte, 512)
 			n, err := fileReader.Read(buffer)
-			fileReader.Close() // @en close file immediately after reading
+			fileReader.Close()
 
 			if err != nil && err != io.EOF {
 				continue
@@ -228,6 +232,24 @@ func (r *Request) GetCookie(key string) string {
 		return val
 	}
 	return ""
+}
+
+// 上下文添加数据
+func (r *Request) AddContext(key string, value any) {
+	ctx := r.Request.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	r.Request = r.Request.WithContext(context.WithValue(ctx, contextKey(key), value))
+}
+
+// 获取上下文数据
+func (r *Request) GetContext(key string) any {
+	ctx := r.Request.Context()
+	if ctx == nil {
+		return nil
+	}
+	return ctx.Value(contextKey(key))
 }
 
 // 判断是否是WebSocket连接

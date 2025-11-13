@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/shi-yunsheng/gostar/date"
 
@@ -113,4 +114,9 @@ func (r *RedisClient) Del(key string) error {
 // 检查值是否存在
 func (r *RedisClient) Exists(key string) (int64, error) {
 	return r.client.Exists(r.prefix + key).Result()
+}
+
+// 获取生命周期
+func (r *RedisClient) GetExpiration(key string) (time.Duration, error) {
+	return r.client.TTL(r.prefix + key).Result()
 }

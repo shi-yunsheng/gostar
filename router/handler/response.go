@@ -22,10 +22,10 @@ type Response struct {
 
 // 响应体
 type ResponseBody struct {
-	Code    int            `json:"code"`
-	Show    bool           `json:"show"`
-	Message string         `json:"message"`
-	Data    map[string]any `json:"data,omitempty"`
+	Code    int    `json:"code"`
+	Show    bool   `json:"show"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 // 写入头

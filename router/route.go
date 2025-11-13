@@ -30,10 +30,6 @@ const (
 type Route struct {
 	// 允许的HTTP方法，默认不限制
 	Method Method
-	// Regular expressions, e.g.: /user/\d+
-	// Path parameters must be wrapped in {}, e.g.: /user/{id}, supports multiple path parameters and nested paths, e.g.: /user/{id}/detail/{girlfriend}
-	// Path parameters can specify default values or types, format: {param:type:default} or {param:default}, e.g.: /user/{id:int} and /user/list/{page:int:1}, supported types: int, float, str, bool, date, default: str
-	// Path parameters support optional, the parameter name uses ? to indicate optional, e.g.: /user/list/{page?:int}
 	// 请求路径，支持正则表达式，路径参数。
 	// 正则表达式，例如：/user/\d+
 	// 路径参数需要用{}包裹，例如：/user/{id}，支持多个路径参数和路径嵌套，例如：/user/{id}/detail/{girlfriend}
@@ -52,12 +48,9 @@ type Route struct {
 	Websocket bool
 	// websocket升级配置，只有在Websocket为true时有效，不设置时，使用默认配置
 	WebsocketUpgrade *websocket.Upgrader
-	// tip: Webapp and Static cannot be set at the same time
 	// 静态文件配置，该选项设置后，Children将无效，Handler则用于前置处理，可中断后续流程
 	// 注：Webapp和Static不能同时设置
 	Static *handler.Static
-	// tip: Webapp and Static cannot be set at the same time
-	// tip: in SPA, unknown routes under the corresponding path will be handled by webapp
 	// 网站配置，默认支持SPA，该选项设置后，Children将无效，Handler则用于前置处理，可中断后续流程
 	// 注：Webapp和Static不能同时设置。
 	// 注：在SPA下，对应路径下的未知路由将交给webapp处理
@@ -66,7 +59,8 @@ type Route struct {
 	params []handler.Param
 	// 父路径
 	parent string
-	// 模型，可以实现"Validate() error"接口，如果有"Validate"接口，则优先使用"Validate"接口进行校验，否则使用 github.com/go-playground/validator/v10 进行校验，有关validator的用法请参考 https://github.com/go-playground/validator
+	// 模型，可以实现"Validate() error"接口，如果有"Validate"接口，则优先使用"Validate"接口进行校验，
+	// 否则使用 github.com/go-playground/validator/v10 进行校验，有关validator的用法请参考 https://github.com/go-playground/validator
 	Bind any
 	// 确保模型类型只初始化一次
 	once sync.Once
@@ -138,7 +132,6 @@ type Router struct {
 	sortedRoutes []string
 	// 全局中间件，洋葱模型
 	middleware []middleware.Middleware
-	// If the Key is the same as the SecretKey in the route, the route's SecretKey will be used
 	// 全局认证密钥，如果设置，则请求头中必须包含该密钥，否则会返回401错误，例如：{"secret": "aha~"}
 	// 如果和路由的SecretKey都包含相同Key，则优先使用路由的SecretKey
 	secretKey map[string]string

@@ -37,8 +37,6 @@ func CamelToSnake(camel string) string {
 		// 当前字符是大写字母时
 		if unicode.IsUpper(r) {
 			prev := runes[i-1]
-			// condition 2: the previous character is an uppercase letter, and the next character is a lowercase letter
-			// condition 3: the previous character should not be a dot or underscore
 			// 条件1：前一个字符是小写字母
 			// 条件2：前一个字符是大写字母，且下一个字符是小写字母
 			// 条件3：前一个字符不应是点或下划线

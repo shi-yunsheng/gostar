@@ -36,7 +36,6 @@ func GetFileName(path string) string {
 	return filepath.Base(path)
 }
 
-// If useExtension is set, the file extension will be used first.
 // 使用标准库DetectContentType获取文件类型。
 // 如果设置了使用扩展名，则优先使用扩展名。
 func GetFileType(path string, useExtension ...bool) string {

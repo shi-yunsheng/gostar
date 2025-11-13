@@ -245,7 +245,6 @@ func InternalServerError(w *Response, r Request, err error) {
 	w.Html(errorPage(errorHtml))
 }
 
-// 400 bad request
 // 400 请求错误
 func BadRequest(w *Response, r Request, err error) {
 	w.WriteHeader(http.StatusBadRequest)

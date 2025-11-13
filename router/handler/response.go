@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/shi-yunsheng/gostar/date"
 )
 
 // 响应对象
@@ -85,11 +87,17 @@ func (w *Response) SetResponse(body []byte) (int, error) {
 }
 
 // 设置Cookie
-func (w *Response) SetCookie(key, value string, maxAge int) {
+// maxAge 支持多种格式："1h"、"30m"、"10s"
+func (w *Response) SetCookie(key, value string, maxAge string) {
+	duration, err := date.ParseTimeDuration(maxAge)
+	if err != nil {
+		panic(err)
+	}
+
 	cookie := &http.Cookie{
 		Name:     key,
 		Value:    value,
-		MaxAge:   maxAge,
+		MaxAge:   int(duration.Seconds()),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,

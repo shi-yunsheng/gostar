@@ -14,7 +14,6 @@ import (
 func isLogFile(fileName string) bool {
 	// 移除 .log 扩展名
 	nameWithoutExt := strings.TrimSuffix(fileName, ".log")
-	// single file format: YYYY-MM-DD and chunked format: YYYY-MM-DD.number
 	// 使用正则表达式匹配日志文件名格式
 	// 单文件格式：YYYY-MM-DD 和分片格式：YYYY-MM-DD.数字
 	matched, _ := regexp.MatchString(`^\d{4}-\d{2}-\d{2}(\.\d+)?$`, nameWithoutExt)

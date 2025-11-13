@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-// Supports multiple time units: ns, us, ms, s, m, h, d, M, y
-// Examples: "1h30m", "2.5d", "1y6M"
 // 解析时间持续字符串并返回 time.Duration
 // 支持多种时间单位：ns, us, ms, s, m, h, d, M, y
 // 例如："1h30m", "2.5d", "1y6M"
@@ -97,8 +95,6 @@ func ParseTimeDuration(duration string) (time.Duration, error) {
 	return time.ParseDuration(fmt.Sprintf("%vs", totalSeconds))
 }
 
-// Supports multiple date formats with or without time
-// Examples: "2024-06-01", "2024/6/1", "2024-06-01 12:30:45"
 // 解析以"-"或"/"分割的日期字符串
 // 支持多种日期格式，可包含时间
 // 例如："2024-06-01", "2024/6/1", "2024-06-01 12:30:45"
@@ -125,8 +121,6 @@ func ParseTimeString(date string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("无法解析日期字符串: %s", date)
 }
 
-// Supports Unix timestamp (seconds), millisecond timestamp, microsecond timestamp, and nanosecond timestamp
-// Examples: "1640995200", "1640995200000", "1640995200000000", "1640995200000000000"
 // 解析时间戳字符串并返回 time.Time
 // 支持Unix时间戳（秒）、毫秒时间戳、微秒时间戳和纳秒时间戳
 // 例如："1640995200", "1640995200000", "1640995200000000", "1640995200000000000"

@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-// Supports units: B, KB, MB, GB, TB (case insensitive)
-// Examples: "1KB", "2.5MB", "1GB"
 // 解析大小字符串并返回字节数
 // 支持单位：B、KB、MB、GB、TB（不区分大小写）
 // 例如："1KB", "2.5MB", "1GB"

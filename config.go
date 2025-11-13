@@ -1,8 +1,10 @@
 package gostar
 
 import (
+	"maps"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/shi-yunsheng/gostar/model"
@@ -144,9 +146,7 @@ func getConfig(name ...string) *config {
 	}
 	// 如果用户使用了custom字段，合并进去
 	if customFromYaml, ok := allConfig["custom"].(map[string]any); ok {
-		for key, value := range customFromYaml {
-			config.Custom[key] = value
-		}
+		maps.Copy(config.Custom, customFromYaml)
 	}
 
 	return config
@@ -156,7 +156,7 @@ func getConfig(name ...string) *config {
 func getStructYamlTags(v any) []string {
 	var tags []string
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -178,12 +178,7 @@ func getStructYamlTags(v any) []string {
 
 // 检查字符串切片是否包含项
 func containsString(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, item)
 }
 
 // 通过路径获取自定义配置值（支持嵌套键，如 "upload.maxsize"）

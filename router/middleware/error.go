@@ -30,17 +30,16 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 					if r.IsWebsocket() {
 						conn := w.GetWebsocketConn()
 						conn.SendJson(handler.ResponseBody{
-							Code:    0,
+							Code:    500,
 							Message: fmt.Sprintf("internal server error: %v\n\nstack info:\n%s", err, stackInfo),
-							Data:    nil,
 						})
 					} else {
 						if r.Method == "GET" {
 							handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
 						} else {
 							w.Json(map[string]any{
-								"error":   "internal server error",
-								"message": err,
+								"code":    500,
+								"message": fmt.Sprintf("internal server error: %v", err),
 								"stack":   stackInfo,
 							})
 						}
@@ -51,17 +50,16 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 				if r.IsWebsocket() {
 					conn := w.GetWebsocketConn()
 					conn.SendJson(handler.ResponseBody{
-						Code:    0,
+						Code:    500,
 						Message: fmt.Sprintf("internal server error: %v", err),
-						Data:    nil,
 					})
 				} else {
 					if r.Method == "GET" {
 						handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
 					} else {
 						w.Json(map[string]any{
-							"error":   "internal server error",
-							"message": err,
+							"error":   500,
+							"message": fmt.Sprintf("internal server error: %v", err),
 						})
 					}
 				}

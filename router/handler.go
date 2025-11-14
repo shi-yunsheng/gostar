@@ -91,21 +91,42 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	}
 
 	if route == nil {
-		handler.NotFound(w, req)
-		return nil
+		if req.Method == "GET" {
+			handler.NotFound(w, req)
+			return nil
+		} else {
+			return map[string]any{
+				"code":    404,
+				"message": "Not Found",
+			}
+		}
 	}
 	// 验证请求方式（递归检查父路由）
 	method := r.getMethod(route)
 	if method != "" && string(method) != req.Method {
-		handler.MethodNotAllowed(w, req)
-		return nil
+		if req.Method == "GET" {
+			handler.MethodNotAllowed(w, req)
+			return nil
+		} else {
+			return map[string]any{
+				"code":    405,
+				"message": "Method Not Allowed",
+			}
+		}
 	}
 	// 验证SecretKey
 	if route.SecretKey != nil {
 		for key, value := range route.SecretKey {
 			if req.GetHeader(key) != value {
-				handler.Unauthorized(w, req)
-				return nil
+				if req.Method == "GET" {
+					handler.Unauthorized(w, req)
+					return nil
+				} else {
+					return map[string]any{
+						"code":    401,
+						"message": "Unauthorized",
+					}
+				}
 			}
 		}
 	}
@@ -114,8 +135,16 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	if route.Bind != nil {
 		model, err := route.Validate(&req)
 		if err != nil {
-			handler.BadRequest(w, req, err)
-			return nil
+			if req.Method == "GET" {
+				handler.BadRequest(w, req, err)
+				return nil
+			} else {
+				return map[string]any{
+					"code":    400,
+					"message": "Bad Request",
+					"error":   err.Error(),
+				}
+			}
 		}
 		req.SetBindModel(model)
 	}
@@ -135,8 +164,15 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	}
 	// 如果handlerFunc为nil，返回404
 	if handlerFunc == nil {
-		handler.NotFound(w, req)
-		return nil
+		if req.Method == "GET" {
+			handler.NotFound(w, req)
+			return nil
+		} else {
+			return map[string]any{
+				"code":    404,
+				"message": "Not Found",
+			}
+		}
 	}
 	// 调用handler并返回结果
 	return handlerFunc(w, req)

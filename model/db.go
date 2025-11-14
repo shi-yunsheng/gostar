@@ -189,12 +189,13 @@ func (d *DBClient) AutoMigrate(models ...any) error {
 			modelType = modelType.Elem()
 		}
 
-		if tableNameMethod := reflect.ValueOf(model).MethodByName("TableName"); tableNameMethod.IsValid() {
-			tableName := tableNameMethod.Call(nil)[0].String()
-			d.models[tableName] = model
-		} else {
-			d.models[utils.CamelToSnake(modelType.Name())] = model
-		}
+		// if tableNameMethod := reflect.ValueOf(model).MethodByName("TableName"); tableNameMethod.IsValid() {
+		// 	tableName := tableNameMethod.Call(nil)[0].String()
+		// 	d.models[tableName] = model
+		// } else {
+		// 	d.models[utils.CamelToSnake(modelType.Name())] = model
+		// }
+		d.models[utils.CamelToSnake(modelType.Name())] = model
 	}
 	return d.db.AutoMigrate(models...)
 }

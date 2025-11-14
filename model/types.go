@@ -25,44 +25,29 @@ var (
 
 // 查询条件结构
 type QueryCondition struct {
-	// 字段
-	Field string `json:"field"`
-	// 操作符
-	Operator string `json:"operator"`
-	// 值
-	Value any `json:"value"`
-	// 是否是或条件
-	IsOr bool `json:"is_or"`
+	Field    string `json:"field"`    // 字段
+	Operator string `json:"operator"` // 操作符
+	Value    any    `json:"value"`    // 值
+	IsOr     bool   `json:"is_or"`    // 是否是或条件
 }
 
 // 分页参数结构
 type PageParams struct {
-	// 当前页码
-	PageNo int `json:"page_no,string"` // 当前页码
-	// 每页条数
-	PageSize int `json:"page_size,string"` // 每页条数
-	// 过滤条件
-	Filter map[string]any `json:"filter"` // 过滤条件
-	// 排序字段
-	OrderBy []string `json:"order_by"` // 排序字段
-	// 分组字段
-	GroupBy []string `json:"group_by"` // 分组字段
-	// 分组条件
-	Having map[string]any `json:"having"` // 分组条件
+	PageNo   int            `json:"page_no"`   // 当前页码
+	PageSize int            `json:"page_size"` // 每页条数
+	Filter   map[string]any `json:"filter"`    // 过滤条件
+	OrderBy  []string       `json:"order_by"`  // 排序字段
+	GroupBy  []string       `json:"group_by"`  // 分组字段
+	Having   map[string]any `json:"having"`    // 分组条件
 }
 
 // 分页结果结构
 type PageResult[T any] struct {
-	// 总条数
-	Count int64 `json:"count"` // 总条数
-	// 列表
-	List []T `json:"list"` // 列表
-	// 当前页码
-	PageNo int `json:"page_no"` // 当前页码
-	// 每页条数
-	PageSize int `json:"page_size"` // 每页条数
-	// 总页数
-	Pages int `json:"pages"` // 总页数
+	Count    int64 `json:"count"`     // 总条数
+	List     []T   `json:"list"`      // 列表
+	PageNo   int   `json:"page_no"`   // 当前页码
+	PageSize int   `json:"page_size"` // 每页条数
+	Pages    int   `json:"pages"`     // 总页数
 }
 
 // 事务配置结构

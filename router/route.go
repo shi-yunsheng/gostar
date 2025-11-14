@@ -84,7 +84,7 @@ func (r *Route) Validate(req *handler.Request) (any, error) {
 	if r.Method == "" {
 		var model map[string]any
 
-		switch r.Method {
+		switch req.Method {
 		case "POST", "PUT", "PATCH", "DELETE":
 			body, err := req.GetAllBody()
 			if err != nil {

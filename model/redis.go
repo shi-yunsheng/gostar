@@ -107,12 +107,12 @@ func (r *RedisClient) Set(key string, value any, expiration string) error {
 }
 
 // 设置值到Redis，如果key存在，则不设置
-func (r *RedisClient) SetNX(key string, value any, expiration string) error {
+func (r *RedisClient) SetNX(key string, value any, expiration string) (bool, error) {
 	duration, err := date.ParseTimeDuration(expiration)
 	if err != nil {
-		return err
+		return false, err
 	}
-	return r.client.SetNX(r.prefix+key, value, duration).Err()
+	return r.client.SetNX(r.prefix+key, value, duration).Result()
 }
 
 // 从Redis中删除值

@@ -106,6 +106,15 @@ func (r *RedisClient) Set(key string, value any, expiration string) error {
 	return r.client.Set(r.prefix+key, value, duration).Err()
 }
 
+// 设置值到Redis，如果key存在，则不设置
+func (r *RedisClient) SetNX(key string, value any, expiration string) error {
+	duration, err := date.ParseTimeDuration(expiration)
+	if err != nil {
+		return err
+	}
+	return r.client.SetNX(r.prefix+key, value, duration).Err()
+}
+
 // 从Redis中删除值
 func (r *RedisClient) Del(key string) error {
 	return r.client.Del(r.prefix + key).Err()

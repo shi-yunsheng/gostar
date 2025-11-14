@@ -59,7 +59,8 @@ type Route struct {
 	params []handler.Param
 	// 父路径
 	parent string
-	// 模型，可以实现"Validate() error"接口，如果有"Validate"接口，则优先使用"Validate"接口进行校验，
+	// 模型，可以实现"Validate()"接口，如果有"Validate"接口，则优先使用"Validate"接口进行校验，
+	// "Validate()"接口可以返回"error"或"error, any"，如果返回"error, any"，则返回的any会被作为响应体返回。
 	// 否则使用 github.com/go-playground/validator/v10 进行校验，有关validator的用法请参考 https://github.com/go-playground/validator
 	Bind any
 	// 确保模型类型只初始化一次
@@ -104,11 +105,16 @@ func (r *Route) Validate(req *handler.Request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		// 如果模型实现了"Validate() error"接口，则使用Validate接口进行校验
+		// 如果模型实现了"Validate()"接口，则使用Validate接口进行校验
 		if validateObj, ok := modelInstance.(interface{ Validate() error }); ok {
 			err = validateObj.Validate()
 			if err != nil {
 				return nil, err
+			}
+		} else if validateObj, ok := modelInstance.(interface{ Validate() (error, any) }); ok {
+			err, resp := validateObj.Validate()
+			if err != nil {
+				return resp, err
 			}
 		} else {
 			// 模型没有实现"Validate() error"接口，使用github.com/go-playground/validator/v10进行校验

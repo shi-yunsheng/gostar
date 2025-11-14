@@ -139,6 +139,10 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 				handler.BadRequest(w, req, err)
 				return nil
 			} else {
+				// 此处的model是route.Validate()自定义的响应
+				if model != nil {
+					return model
+				}
 				return map[string]any{
 					"code":    400,
 					"message": "Bad Request",

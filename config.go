@@ -304,33 +304,48 @@ func (g *goStar) GetConfigFloat(path string, defaultVal ...float64) float64 {
 }
 
 // 通过路径获取自定义配置映射
-func (g *goStar) GetConfigMap(path string) map[string]any {
+func (g *goStar) GetConfigMap(path string, defaultVal ...map[string]any) map[string]any {
 	val := g.GetConfig(path)
 	if val == nil {
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
+		}
 		return nil
 	}
 	if m, ok := val.(map[string]any); ok {
 		return m
 	}
+	if len(defaultVal) > 0 {
+		return defaultVal[0]
+	}
 	return nil
 }
 
 // 通过路径获取自定义配置切片
-func (g *goStar) GetConfigSlice(path string) []any {
+func (g *goStar) GetConfigSlice(path string, defaultVal ...[]any) []any {
 	val := g.GetConfig(path)
 	if val == nil {
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
+		}
 		return nil
 	}
 	if s, ok := val.([]any); ok {
 		return s
 	}
+	if len(defaultVal) > 0 {
+		return defaultVal[0]
+	}
 	return nil
 }
 
 // 通过路径获取自定义配置字符串切片
-func (g *goStar) GetConfigStringSlice(path string) []string {
+func (g *goStar) GetConfigStringSlice(path string, defaultVal ...[]string) []string {
 	val := g.GetConfig(path)
 	if val == nil {
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
+		}
 		return nil
 	}
 	if s, ok := val.([]any); ok {
@@ -341,6 +356,9 @@ func (g *goStar) GetConfigStringSlice(path string) []string {
 			}
 		}
 		return result
+	}
+	if len(defaultVal) > 0 {
+		return defaultVal[0]
 	}
 	return nil
 }

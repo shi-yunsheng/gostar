@@ -70,15 +70,38 @@ type QueryBuilder[T any] struct {
 	offset     int
 }
 
+// 连接条件结构
+type JoinCondition struct {
+	JoinType string // 连接类型: LEFT, RIGHT, INNER, OUTER，默认为 INNER
+	OnClause string // ON 子句，如: "users.id = login_logs.user_id"
+}
+
 // 联合查询参数结构
 type JoinParams struct {
 	// 需要联合查询的模型切片，顺序决定了主表和关联表
 	Models []any `json:"models"`
 	// 查询条件，如果是多表查询，则需要指定表名，如: "table_name.id": 1
 	QueryConditions map[string]any `json:"query_conditions"`
-	// 连接条件，条件与除去主表外的models对应，如: Models: [User, LoginLog]，那么连接条件就则是["User.account = LoginLog.account"]
+	// JoinConditions 定义表连接条件。
+	//
+	// 格式说明：
+	//   - 每个连接条件对应 Models 中除第一个（主表）外的其他表
+	//   - 基本格式: "表名.字段 = 表名.字段"
+	//   - 支持连接类型: LEFT, RIGHT, INNER, OUTER
+	//   - 连接类型可放在任一侧表名前
+	//
+	// 示例：
+	//   Models: [User, LoginLog, Profile]
+	//   JoinConditions: [
+	//     "LEFT User.id = LoginLog.user_id",      // 左连接 LoginLog
+	//     "User.id = RIGHT Profile.user_id",      // 右连接 Profile
+	//     "INNER User.dept_id = Department.id",   // 内连接 Department
+	//   ]
+	//
+	// 注意：如未指定连接类型，默认使用 INNER JOIN
 	JoinConditions []string `json:"join_conditions"`
 	// 查询字段，如: []string{"table1_name.field1", "table2_name.field2"}
+	// 也可以是: []string{"table1_name.*", "table2_name.field2"}，表示查询table1表的所有字段和table2表的field2字段
 	SelectFields []string `json:"select_fields"`
 	// 分页参数，如果需要分页查询，则需要指定
 	PageParams *PageParams `json:"page_params"`

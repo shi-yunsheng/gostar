@@ -24,7 +24,7 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	// 将所有模型转换为结构体类型并获取表名
 	for i, model := range params.Models {
 		modelType := reflect.TypeOf(model)
-		if modelType.Kind() == reflect.Ptr {
+		if modelType.Kind() == reflect.Pointer {
 			modelType = modelType.Elem()
 		}
 		modelName := utils.CamelToSnake(modelType.Name())
@@ -38,11 +38,14 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 			continue
 		}
 		// 连接表，如果没有连接条件，则使用模型定义的外键
-		sql := ""
-		if len(joinConditions) > 0 {
-			sql = fmt.Sprintf("JOIN %s ON %s", tablePrefix+modelName, joinConditions[i-1])
+		var sql string
+		if len(joinConditions) > 0 && i-1 < len(joinConditions) {
+			joinCond := joinConditions[i-1]
+			// 使用解析出的连接类型和 ON 子句
+			sql = fmt.Sprintf("%s JOIN `%s` ON %s", joinCond.JoinType, tablePrefix+modelName, joinCond.OnClause)
 		} else {
-			sql = tablePrefix + modelName
+			// 没有连接条件时，默认使用 INNER JOIN（但这种情况应该避免）
+			sql = fmt.Sprintf("INNER JOIN `%s`", tablePrefix+modelName)
 		}
 		query = query.Joins(sql)
 	}

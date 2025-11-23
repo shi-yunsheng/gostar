@@ -314,22 +314,90 @@ func parseQueryConditions(queryConditions map[string]any, query ...*gorm.DB) (*g
 }
 
 // 解析连接条件
-func parseJoinConditions(joinConditions []string, dbName ...string) []string {
-	newJoinConditions := []string{}
+func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondition {
+	result := make([]JoinCondition, 0, len(joinConditions))
 	// 获取表前缀
 	tablePrefix := getDBClient(dbName...).prefix
 
-	for _, condition := range joinConditions {
-		// 解析连接条件
-		parts := strings.Split(condition, "=")
-		if len(parts) != 2 {
-			continue
-		}
-		leftField := tablePrefix + utils.CamelToSnake(strings.TrimSpace(parts[0]))
-		rightField := tablePrefix + utils.CamelToSnake(strings.TrimSpace(parts[1]))
-
-		newJoinConditions = append(newJoinConditions, fmt.Sprintf("%s = %s", leftField, rightField))
+	// 支持的连接类型
+	joinTypes := map[string]bool{
+		"LEFT":  true,
+		"RIGHT": true,
+		"INNER": true,
+		"OUTER": true,
 	}
 
-	return newJoinConditions
+	for _, condition := range joinConditions {
+		condition = strings.TrimSpace(condition)
+		if condition == "" {
+			continue
+		}
+
+		joinCond := JoinCondition{
+			JoinType: "INNER", // 默认使用 INNER JOIN
+		}
+
+		// 检查开头是否有连接类型
+		parts := strings.Fields(condition)
+		if len(parts) > 0 {
+			upperFirst := strings.ToUpper(parts[0])
+			if joinTypes[upperFirst] {
+				joinCond.JoinType = upperFirst
+				// 移除连接类型，重新组合条件
+				condition = strings.Join(parts[1:], " ")
+			}
+		}
+
+		// 解析等号分隔的左右两侧
+		equalIndex := strings.Index(condition, "=")
+		if equalIndex == -1 {
+			continue
+		}
+
+		leftPart := strings.TrimSpace(condition[:equalIndex])
+		rightPart := strings.TrimSpace(condition[equalIndex+1:])
+
+		// 检查右侧是否有连接类型
+		rightParts := strings.Fields(rightPart)
+		if len(rightParts) > 0 {
+			upperFirst := strings.ToUpper(rightParts[0])
+			if joinTypes[upperFirst] {
+				joinCond.JoinType = upperFirst
+				// 移除连接类型，重新组合右侧
+				rightPart = strings.Join(rightParts[1:], " ")
+			}
+		}
+
+		// 解析左侧字段（表名.字段名）
+		leftField := parseJoinField(leftPart, tablePrefix)
+		// 解析右侧字段（表名.字段名）
+		rightField := parseJoinField(rightPart, tablePrefix)
+
+		// 构建 ON 子句
+		joinCond.OnClause = fmt.Sprintf("%s = %s", leftField, rightField)
+		result = append(result, joinCond)
+	}
+
+	return result
+}
+
+// 解析连接字段，支持 table.field 格式
+func parseJoinField(field string, tablePrefix string) string {
+	field = strings.TrimSpace(field)
+	// 如果包含点号，说明是 table.field 格式
+	if strings.Contains(field, ".") {
+		parts := strings.Split(field, ".")
+		if len(parts) == 2 {
+			tableName := utils.CamelToSnake(strings.TrimSpace(parts[0]))
+			fieldName := utils.CamelToSnake(strings.TrimSpace(parts[1]))
+			return fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, fieldName)
+		}
+		// 如果包含多个点号，只处理第一个点号
+		firstDot := strings.Index(field, ".")
+		tableName := utils.CamelToSnake(strings.TrimSpace(field[:firstDot]))
+		fieldName := utils.CamelToSnake(strings.TrimSpace(field[firstDot+1:]))
+		return fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, fieldName)
+	}
+	// 不包含点号，直接转换
+	return fmt.Sprintf("`%s`", tablePrefix+utils.CamelToSnake(field))
 }

@@ -54,7 +54,7 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 				return nil, fmt.Errorf("query field [%s] not found", field)
 			}
 
-			params.SelectFields[i] = tablePrefix + utils.CamelToSnake(field)
+			params.SelectFields[i] = formatSelectField(field, tablePrefix)
 		}
 		query = query.Select(params.SelectFields)
 	}

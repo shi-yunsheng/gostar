@@ -86,11 +86,11 @@ func isValidFieldName(field string) bool {
 				return false
 			}
 		} else {
-			// 其他字符可以是字母、数字、下划线或点号
+			// 其他字符可以是字母、数字、下划线、点号或星号（用于 table.*）
 			if !((char >= 'a' && char <= 'z') ||
 				(char >= 'A' && char <= 'Z') ||
 				(char >= '0' && char <= '9') ||
-				char == '_' || char == '.') {
+				char == '_' || char == '.' || char == '*') {
 				return false
 			}
 		}
@@ -112,6 +112,34 @@ func formatFieldName(field string) string {
 	}
 	// 不包含点号，直接包装
 	return "`" + field + "`"
+}
+
+// 格式化查询字段
+func formatSelectField(field string, tablePrefix string) string {
+	// 如果包含点号，处理 table.field 或 table.* 格式
+	if strings.Contains(field, ".") {
+		parts := strings.Split(field, ".")
+		if len(parts) == 2 {
+			tableName := utils.CamelToSnake(parts[0])
+			fieldName := parts[1]
+			// 如果是 table.* 格式
+			if fieldName == "*" {
+				return tablePrefix + tableName + ".*"
+			}
+			// 如果是 table.field 格式
+			return tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+		}
+		// 如果包含多个点号，只处理第一个点号
+		firstDot := strings.Index(field, ".")
+		tableName := utils.CamelToSnake(field[:firstDot])
+		fieldName := field[firstDot+1:]
+		if fieldName == "*" {
+			return tablePrefix + tableName + ".*"
+		}
+		return tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+	}
+	// 不包含点号，直接转换并添加前缀
+	return tablePrefix + utils.CamelToSnake(field)
 }
 
 // 构建基础查询

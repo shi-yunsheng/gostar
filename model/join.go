@@ -32,7 +32,6 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 		if !ok {
 			return nil, fmt.Errorf("model [%s] not found", modelName)
 		}
-		// 从 tableNameMap 获取表名
 		tableName, ok := db.tableNameMap[modelName]
 		if !ok {
 			return nil, fmt.Errorf("table name for model [%s] not found in tableNameMap", modelName)
@@ -73,7 +72,7 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	}
 	// 如果有分页参数，则应用分页
 	if params.PageParams != nil {
-		return parsePager[map[string]any](params.PageParams, query)
+		return parsePager[map[string]any](params.PageParams, query, db.tableNameMap)
 	}
 
 	var result []map[string]any

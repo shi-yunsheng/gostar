@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/shi-yunsheng/gostar/utils"
+
 	"gorm.io/gorm"
 )
 
 // 分页解析
-func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error) {
+func parsePager[T any](params *PageParams, query *gorm.DB, tableNameMap map[string]string) (PageResult[T], error) {
 	if params == nil {
 		return PageResult[T]{}, nil
 	}
@@ -25,8 +27,8 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 	// 解析过滤条件
 	if len(params.Filter) > 0 {
 		var err error
-		// 单表查询不需要表名映射，传递 nil
-		query, err = parseQueryConditions(params.Filter, nil, query)
+		// 传递 tableNameMap
+		query, err = parseQueryConditions(params.Filter, tableNameMap, query)
 		if err != nil {
 			return PageResult[T]{}, err
 		}
@@ -36,7 +38,9 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 		validGroupFields := make([]string, 0, len(params.GroupBy))
 		for _, field := range params.GroupBy {
 			if isValidFieldName(field) {
-				validGroupFields = append(validGroupFields, "`"+field+"`")
+				// 格式化分组字段
+				formattedField := formatGroupByField(field, tableNameMap)
+				validGroupFields = append(validGroupFields, formattedField)
 			}
 		}
 		if len(validGroupFields) > 0 {
@@ -45,15 +49,15 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 	}
 	// 应用HAVING条件
 	if len(params.Having) > 0 {
-		// 单表查询不需要表名映射，传递 nil
-		havingQuery, err := parseQueryConditions(params.Having, nil, query.Session(&gorm.Session{}))
+		// 传递 tableNameMap
+		havingQuery, err := parseQueryConditions(params.Having, tableNameMap, query.Session(&gorm.Session{}))
 		if err != nil {
 			return PageResult[T]{}, fmt.Errorf("failed to parse HAVING conditions: %w", err)
 		}
 		// 提取HAVING条件的WHERE子句
 		query = query.Having(havingQuery.Statement.SQL.String(), havingQuery.Statement.Vars...)
 	}
-	// 计算总记录数（使用会话避免影响原查询）
+	// 计算总记录数
 	var totalCount int64
 	countQuery := query.Session(&gorm.Session{})
 	err := countQuery.Count(&totalCount).Error
@@ -79,7 +83,9 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 			}
 
 			if isValidFieldName(fieldName) {
-				query = query.Order("`" + fieldName + "` " + direction)
+				// 格式化排序字段（支持 table.field 格式）
+				formattedField := formatOrderByField(fieldName, tableNameMap)
+				query = query.Order(formattedField + " " + direction)
 			}
 		}
 	} else {
@@ -104,6 +110,62 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 	}, nil
 }
 
+// 格式化排序字段
+func formatOrderByField(field string, tableNameMap map[string]string) string {
+	field = strings.TrimSpace(field)
+	// 如果包含点号，说明是 table.field 格式
+	if strings.Contains(field, ".") {
+		parts := strings.Split(field, ".")
+		if len(parts) == 2 {
+			modelName := strings.TrimSpace(parts[0])
+			fieldName := strings.TrimSpace(parts[1])
+			tableName := getTableNameFromMap(modelName, tableNameMap)
+			// 格式化字段名
+			formattedFieldName := utils.CamelToSnake(fieldName)
+			return fmt.Sprintf("`%s`.`%s`", tableName, formattedFieldName)
+		}
+		// 如果包含多个点号，只处理第一个点号
+		firstDot := strings.Index(field, ".")
+		modelName := strings.TrimSpace(field[:firstDot])
+		fieldName := strings.TrimSpace(field[firstDot+1:])
+		tableName := getTableNameFromMap(modelName, tableNameMap)
+		// 格式化字段名
+		formattedFieldName := utils.CamelToSnake(fieldName)
+		return fmt.Sprintf("`%s`.`%s`", tableName, formattedFieldName)
+	}
+	// 不包含点号，直接包装
+	return "`" + field + "`"
+}
+
+// 格式化分组字段，支持 table.field 格式
+func formatGroupByField(field string, tableNameMap map[string]string) string {
+	field = strings.TrimSpace(field)
+	// 如果包含点号，说明是 table.field 格式
+	if strings.Contains(field, ".") {
+		parts := strings.Split(field, ".")
+		if len(parts) == 2 {
+			modelName := strings.TrimSpace(parts[0])
+			fieldName := strings.TrimSpace(parts[1])
+			// 从 tableNameMap 获取实际表名
+			tableName := getTableNameFromMap(modelName, tableNameMap)
+			// 格式化字段名
+			formattedFieldName := utils.CamelToSnake(fieldName)
+			return fmt.Sprintf("`%s`.`%s`", tableName, formattedFieldName)
+		}
+		// 如果包含多个点号，只处理第一个点号
+		firstDot := strings.Index(field, ".")
+		modelName := strings.TrimSpace(field[:firstDot])
+		fieldName := strings.TrimSpace(field[firstDot+1:])
+		// 从 tableNameMap 获取实际表名
+		tableName := getTableNameFromMap(modelName, tableNameMap)
+		// 格式化字段名
+		formattedFieldName := utils.CamelToSnake(fieldName)
+		return fmt.Sprintf("`%s`.`%s`", tableName, formattedFieldName)
+	}
+	// 不包含点号，直接包装
+	return "`" + field + "`"
+}
+
 // 分页查询
 func Pagination[T any](params PageParams, dbName ...string) (PageResult[T], error) {
 	model, err := parseModelWithCache[T](dbName...)
@@ -113,5 +175,6 @@ func Pagination[T any](params PageParams, dbName ...string) (PageResult[T], erro
 
 	db := getDBClient(dbName...)
 	query := db.db.Model(model)
-	return parsePager[T](&params, query)
+
+	return parsePager[T](&params, query, nil)
 }

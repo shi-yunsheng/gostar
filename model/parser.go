@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/shi-yunsheng/gostar/utils"
@@ -337,7 +338,7 @@ func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondit
 			JoinType: "INNER", // 默认使用 INNER JOIN
 		}
 
-		// 检查开头是否有连接类型
+		// 检查开头是否有连接类型（必须在条件最开始）
 		parts := strings.Fields(condition)
 		if len(parts) > 0 {
 			upperFirst := strings.ToUpper(parts[0])
@@ -348,40 +349,175 @@ func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondit
 			}
 		}
 
-		// 解析等号分隔的左右两侧
-		equalIndex := strings.Index(condition, "=")
-		if equalIndex == -1 {
+		// 解析多个条件（支持 AND/OR 连接）
+		onClause := parseJoinOnClause(condition, tablePrefix)
+		if onClause == "" {
 			continue
 		}
 
-		leftPart := strings.TrimSpace(condition[:equalIndex])
-		rightPart := strings.TrimSpace(condition[equalIndex+1:])
-
-		// 检查右侧是否有连接类型
-		rightParts := strings.Fields(rightPart)
-		if len(rightParts) > 0 {
-			upperFirst := strings.ToUpper(rightParts[0])
-			if joinTypes[upperFirst] {
-				joinCond.JoinType = upperFirst
-				// 移除连接类型，重新组合右侧
-				rightPart = strings.Join(rightParts[1:], " ")
-			}
-		}
-
-		// 解析左侧字段（表名.字段名）
-		leftField := parseJoinField(leftPart, tablePrefix)
-		// 解析右侧字段（表名.字段名）
-		rightField := parseJoinField(rightPart, tablePrefix)
-
-		// 构建 ON 子句
-		joinCond.OnClause = fmt.Sprintf("%s = %s", leftField, rightField)
+		joinCond.OnClause = onClause
 		result = append(result, joinCond)
 	}
 
 	return result
 }
 
-// 解析连接字段，支持 table.field 格式
+// 解析 JOIN ON 子句，支持多个条件用 AND/OR 连接
+func parseJoinOnClause(condition string, tablePrefix string) string {
+	// 使用正则表达式分割 AND/OR，同时保留分隔符和原始大小写
+	andOrRegex := regexp.MustCompile(`\s+(?i)(AND|OR)\s+`)
+
+	// 找到所有 AND/OR 的位置
+	matches := andOrRegex.FindAllStringSubmatchIndex(condition, -1)
+	if len(matches) == 0 {
+		// 单个条件
+		formatted := parseSingleJoinCondition(condition, tablePrefix)
+		return formatted
+	}
+
+	// 分割条件，保留操作符
+	var conditions []string
+	var operators []string
+	lastIndex := 0
+
+	for _, match := range matches {
+		// 添加条件部分
+		condPart := strings.TrimSpace(condition[lastIndex:match[0]])
+		if condPart != "" {
+			conditions = append(conditions, condPart)
+		}
+		// 添加操作符（保持原始大小写）
+		op := condition[match[2]:match[3]]
+		operators = append(operators, strings.ToUpper(op))
+		lastIndex = match[1]
+	}
+	// 添加最后一个条件
+	lastCond := strings.TrimSpace(condition[lastIndex:])
+	if lastCond != "" {
+		conditions = append(conditions, lastCond)
+	}
+
+	// 解析每个条件并格式化
+	formattedConditions := make([]string, 0, len(conditions))
+	for _, cond := range conditions {
+		formatted := parseSingleJoinCondition(cond, tablePrefix)
+		if formatted != "" {
+			formattedConditions = append(formattedConditions, formatted)
+		}
+	}
+
+	if len(formattedConditions) == 0 {
+		return ""
+	}
+
+	if len(formattedConditions) == 1 {
+		return formattedConditions[0]
+	}
+
+	// 重新组合条件，使用原始的操作符
+	var result strings.Builder
+	result.WriteString(formattedConditions[0])
+	for i := 1; i < len(formattedConditions); i++ {
+		if i-1 < len(operators) {
+			result.WriteString(" " + operators[i-1] + " ")
+		} else {
+			result.WriteString(" AND ")
+		}
+		result.WriteString(formattedConditions[i])
+	}
+
+	return result.String()
+}
+
+// 解析单个连接条件
+func parseSingleJoinCondition(condition string, tablePrefix string) string {
+	condition = strings.TrimSpace(condition)
+	if condition == "" {
+		return ""
+	}
+
+	// 支持的比较操作符
+	operators := []string{"<>", ">=", "<=", "!=", ">", "<", "="}
+
+	var operator string
+	var operatorIndex int = -1
+
+	// 查找第一个匹配的操作符
+	for _, op := range operators {
+		idx := strings.Index(condition, op)
+		if idx != -1 {
+			operator = op
+			operatorIndex = idx
+			break
+		}
+	}
+
+	if operatorIndex == -1 {
+		// 没有找到操作符，返回空
+		return ""
+	}
+
+	leftPart := strings.TrimSpace(condition[:operatorIndex])
+	rightPart := strings.TrimSpace(condition[operatorIndex+len(operator):])
+
+	// 解析左侧字段
+	leftField := parseJoinField(leftPart, tablePrefix)
+
+	// 解析右侧（可能是字段或值）
+	rightField := parseJoinFieldOrValue(rightPart, tablePrefix)
+
+	return fmt.Sprintf("%s %s %s", leftField, operator, rightField)
+}
+
+// 解析连接字段或值
+func parseJoinFieldOrValue(part string, tablePrefix string) string {
+	part = strings.TrimSpace(part)
+	if part == "" {
+		return ""
+	}
+
+	// 如果是字符串值（用单引号或双引号包围）
+	if (strings.HasPrefix(part, "'") && strings.HasSuffix(part, "'")) ||
+		(strings.HasPrefix(part, "\"") && strings.HasSuffix(part, "\"")) {
+		// 直接返回，保持原样
+		return part
+	}
+
+	// 如果是数字（可能是整数或浮点数）
+	if isNumeric(part) {
+		return part
+	}
+
+	// 否则当作字段处理（table.field 或 field）
+	return parseJoinField(part, tablePrefix)
+}
+
+// 判断字符串是否为数字
+func isNumeric(s string) bool {
+	if s == "" {
+		return false
+	}
+	// 检查是否为数字（包括负号、小数点）
+	hasDot := false
+	for i, r := range s {
+		if i == 0 && r == '-' {
+			continue
+		}
+		if r == '.' {
+			if hasDot {
+				return false
+			}
+			hasDot = true
+			continue
+		}
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// 解析连接字段
 func parseJoinField(field string, tablePrefix string) string {
 	field = strings.TrimSpace(field)
 	// 如果包含点号，说明是 table.field 格式

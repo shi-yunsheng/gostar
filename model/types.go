@@ -73,7 +73,7 @@ type QueryBuilder[T any] struct {
 // 连接条件结构
 type JoinCondition struct {
 	JoinType string // 连接类型: LEFT, RIGHT, INNER, OUTER，默认为 INNER
-	OnClause string // ON 子句，如: "users.id = login_logs.user_id"
+	OnClause string // ON 子句，如: "User.id = LoginLog.user_id"
 }
 
 // 联合查询参数结构
@@ -86,16 +86,17 @@ type JoinParams struct {
 	//
 	// 格式说明：
 	//   - 每个连接条件对应 Models 中除第一个（主表）外的其他表
-	//   - 基本格式: "表名.字段 = 表名.字段"
-	//   - 支持连接类型: LEFT, RIGHT, INNER, OUTER
-	//   - 连接类型可放在任一侧表名前
+	//   - 基本格式: "表名.字段 = 表名.字段" 或 "连接类型 表名.字段 = 表名.字段"
+	//   - 支持连接类型: LEFT, RIGHT, INNER, OUTER（必须在条件最开始，不写则默认为 INNER）
+	//   - 支持多个条件，使用"AND", "OR"连接
 	//
 	// 示例：
-	//   Models: [User, LoginLog, Profile]
+	//   Models: [User, LoginLog, Profile, Department, Order]
 	//   JoinConditions: [
 	//     "LEFT User.id = LoginLog.user_id",      // 左连接 LoginLog
-	//     "User.id = RIGHT Profile.user_id",      // 右连接 Profile
+	//     "RIGHT User.id = Profile.user_id",      // 右连接 Profile
 	//     "INNER User.dept_id = Department.id",   // 内连接 Department
+	//     "User.id = Order.user_id AND User.name = '张三'",               // 默认 INNER 连接
 	//   ]
 	//
 	// 注意：如未指定连接类型，默认使用 INNER JOIN

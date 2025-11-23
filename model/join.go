@@ -12,22 +12,40 @@ func getTableName(model any) string {
 	modelValue := reflect.ValueOf(model)
 	modelType := reflect.TypeOf(model)
 
-	// 处理指针类型
-	if modelValue.Kind() == reflect.Pointer {
-		if modelValue.IsNil() {
-			// 如果是 nil 指针，使用类型信息创建新实例
-			modelType = modelType.Elem()
-			modelValue = reflect.New(modelType)
-		} else {
-			modelValue = modelValue.Elem()
-			modelType = modelType.Elem()
-		}
+	// 获取基础类型
+	baseType := modelType
+	if baseType.Kind() == reflect.Pointer {
+		baseType = baseType.Elem()
 	}
 
-	// 获取 TableName 方法（值接收者方法）
-	tableNameMethod := modelValue.MethodByName("TableName")
+	// 准备用于查找方法的 Value
+	var ptrValue reflect.Value
+	var valueValue reflect.Value
+
+	if modelValue.Kind() == reflect.Pointer {
+		if modelValue.IsNil() {
+			// 如果是 nil 指针，创建新实例
+			ptrValue = reflect.New(baseType)
+			valueValue = ptrValue.Elem()
+		} else {
+			ptrValue = modelValue
+			valueValue = modelValue.Elem()
+		}
+	} else {
+		// 值类型，创建指针
+		ptrValue = modelValue.Addr()
+		valueValue = modelValue
+	}
+
+	// 先尝试在指针上查找方法
+	tableNameMethod := ptrValue.MethodByName("TableName")
+	if !tableNameMethod.IsValid() {
+		// 如果指针上找不到，尝试在值类型上查找
+		tableNameMethod = valueValue.MethodByName("TableName")
+	}
+
+	// 如果找到了方法，调用它
 	if tableNameMethod.IsValid() {
-		// 调用 TableName() 方法
 		results := tableNameMethod.Call(nil)
 		if len(results) > 0 {
 			return results[0].String()
@@ -35,7 +53,7 @@ func getTableName(model any) string {
 	}
 
 	// 如果没有 TableName 方法，使用默认命名规则
-	return utils.CamelToSnake(modelType.Name())
+	return utils.CamelToSnake(baseType.Name())
 }
 
 // 联合查询

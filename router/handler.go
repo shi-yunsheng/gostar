@@ -2,8 +2,10 @@ package router
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/shi-yunsheng/gostar/date"
 	"github.com/shi-yunsheng/gostar/router/handler"
 )
 
@@ -60,13 +62,60 @@ func (r *Router) parseParam(route *Route, path string) []handler.Param {
 
 		reg := regexp.MustCompile(params[i].Pattern)
 		if reg.MatchString(match) {
-			params[i].Value = match
+			// 根据类型进行转换
+			convertedValue, err := convertParamValue(match, params[i].Type)
+			if err != nil {
+				if !params[i].Optional {
+					panic("invalid path parameter value, must be " + params[i].Type + ". Got: " + match + ". Error: " + err.Error())
+				}
+			} else {
+				params[i].Value = convertedValue
+			}
 		} else if !params[i].Optional {
 			panic("invalid path parameter value, must be " + params[i].Type + ". Got: " + match)
 		}
 	}
 
 	return params
+}
+
+// 转换参数值
+func convertParamValue(value string, paramType string) (any, error) {
+	switch paramType {
+	case "int":
+		val, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	case "float":
+		val, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	case "bool":
+		val, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	case "date":
+		val, err := date.ParseTimeString(value)
+		if err != nil {
+			val, err = date.ParseTimestamp(value)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return val, nil
+	case "str", "":
+		// 默认类型为字符串
+		return value, nil
+	default:
+		// 未知类型，返回原值
+		return value, nil
+	}
 }
 
 // 根处理器，所有请求都会经过这里

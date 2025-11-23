@@ -16,6 +16,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -54,6 +55,13 @@ var (
 	modelCache = sync.Map{} // 模型缓存
 )
 
+var debug = false
+
+// 开启调试模式
+func EnableDebug() {
+	debug = true
+}
+
 // 初始化数据库
 func InitDB(config map[string]DBConfig) {
 	if len(config) == 0 {
@@ -76,13 +84,18 @@ func InitDB(config map[string]DBConfig) {
 			var db *gorm.DB
 			var err error
 
+			conf := &gorm.Config{}
+			if debug {
+				conf.Logger = logger.Default.LogMode(logger.Info)
+			}
+
 			switch config.Driver {
 			case "mysql":
-				db, err = gorm.Open(mysql.Open(config.DSN), &gorm.Config{})
+				db, err = gorm.Open(mysql.Open(config.DSN), conf)
 			case "postgres":
-				db, err = gorm.Open(postgres.Open(config.DSN), &gorm.Config{})
+				db, err = gorm.Open(postgres.Open(config.DSN), conf)
 			case "sqlite":
-				db, err = gorm.Open(sqlite.Open(config.DSN), &gorm.Config{})
+				db, err = gorm.Open(sqlite.Open(config.DSN), conf)
 			}
 
 			if err != nil {

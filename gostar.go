@@ -24,7 +24,7 @@ type goStar struct {
 // 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance = &goStar{
-		version: "1.0.40-beta",
+		version: "1.0.41-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
@@ -38,6 +38,7 @@ func (g *goStar) initGoStar() {
 	if g.config.Debug {
 		middleware.EnableDebug()
 		handler.EnableDebug()
+		model.EnableDebug()
 	}
 
 	g.initDate()

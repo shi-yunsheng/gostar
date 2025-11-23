@@ -8,7 +8,7 @@ import (
 )
 
 // 联合查询
-func JoinQuery(params JoinParams, dbName ...string) (any, error) {
+func JoinQuery[T any](params JoinParams, dbName ...string) (any, error) {
 	if len(params.Models) == 0 {
 		return nil, fmt.Errorf("models list cannot be empty")
 	}
@@ -72,10 +72,10 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	}
 	// 如果有分页参数，则应用分页
 	if params.PageParams != nil {
-		return parsePager[map[string]any](params.PageParams, query, db.tableNameMap)
+		return parsePager[T](params.PageParams, query, db.tableNameMap)
 	}
 
-	var result []map[string]any
+	var result []T
 	err = query.Find(&result).Error
 	if err != nil {
 		return nil, err

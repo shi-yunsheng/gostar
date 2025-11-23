@@ -2,7 +2,6 @@ package model
 
 import (
 	"regexp"
-	"sync"
 	"time"
 
 	"gorm.io/gorm"
@@ -17,8 +16,6 @@ const (
 )
 
 var (
-	// 模型缓存
-	modelCache = sync.Map{}
 	// 操作符正则
 	operatorRegex = regexp.MustCompile(`^(<>|>=|<=|!=|>|<|=)(.*)$`)
 )

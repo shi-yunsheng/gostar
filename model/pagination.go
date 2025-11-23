@@ -25,7 +25,8 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 	// 解析过滤条件
 	if len(params.Filter) > 0 {
 		var err error
-		query, err = parseQueryConditions(params.Filter, query)
+		// 单表查询不需要表名映射，传递 nil
+		query, err = parseQueryConditions(params.Filter, nil, query)
 		if err != nil {
 			return PageResult[T]{}, err
 		}
@@ -44,7 +45,8 @@ func parsePager[T any](params *PageParams, query *gorm.DB) (PageResult[T], error
 	}
 	// 应用HAVING条件
 	if len(params.Having) > 0 {
-		havingQuery, err := parseQueryConditions(params.Having, query.Session(&gorm.Session{}))
+		// 单表查询不需要表名映射，传递 nil
+		havingQuery, err := parseQueryConditions(params.Having, nil, query.Session(&gorm.Session{}))
 		if err != nil {
 			return PageResult[T]{}, fmt.Errorf("failed to parse HAVING conditions: %w", err)
 		}

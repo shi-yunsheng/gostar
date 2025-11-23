@@ -24,7 +24,8 @@ func NewQueryBuilder[T any](dbName ...string) (*QueryBuilder[T], error) {
 
 // 添加查询条件
 func (qb *QueryBuilder[T]) Where(conditions map[string]any) *QueryBuilder[T] {
-	query, err := parseQueryConditions(conditions, qb.db)
+	// 单表查询不需要表名映射，传递 nil
+	query, err := parseQueryConditions(conditions, nil, qb.db)
 	if err == nil {
 		qb.db = query
 	}

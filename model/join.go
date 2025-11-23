@@ -7,55 +7,6 @@ import (
 	"github.com/shi-yunsheng/gostar/utils"
 )
 
-// 获取模型表名
-func getTableName(model any) string {
-	modelValue := reflect.ValueOf(model)
-	modelType := reflect.TypeOf(model)
-
-	// 获取基础类型
-	baseType := modelType
-	if baseType.Kind() == reflect.Pointer {
-		baseType = baseType.Elem()
-	}
-
-	// 准备用于查找方法的 Value
-	var ptrValue reflect.Value
-	var valueValue reflect.Value
-
-	if modelValue.Kind() == reflect.Pointer {
-		if modelValue.IsNil() {
-			// 如果是 nil 指针，创建新实例
-			ptrValue = reflect.New(baseType)
-			valueValue = ptrValue.Elem()
-		} else {
-			ptrValue = modelValue
-			valueValue = modelValue.Elem()
-		}
-	} else {
-		// 值类型，创建指针
-		ptrValue = modelValue.Addr()
-		valueValue = modelValue
-	}
-
-	// 先尝试在指针上查找方法
-	tableNameMethod := ptrValue.MethodByName("TableName")
-	if !tableNameMethod.IsValid() {
-		// 如果指针上找不到，尝试在值类型上查找
-		tableNameMethod = valueValue.MethodByName("TableName")
-	}
-
-	// 如果找到了方法，调用它
-	if tableNameMethod.IsValid() {
-		results := tableNameMethod.Call(nil)
-		if len(results) > 0 {
-			return results[0].String()
-		}
-	}
-
-	// 如果没有 TableName 方法，使用默认命名规则
-	return utils.CamelToSnake(baseType.Name())
-}
-
 // 联合查询
 func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	if len(params.Models) == 0 {
@@ -69,7 +20,7 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 	db := getDBClient(dbName...)
 	query := db.db
 	tablePrefix := db.prefix
-	joinConditions := parseJoinConditions(params.JoinConditions, dbName...)
+	joinConditions := parseJoinConditions(params.JoinConditions, db.tableNameMap, dbName...)
 	// 将所有模型转换为结构体类型并获取表名
 	for i, model := range params.Models {
 		modelType := reflect.TypeOf(model)
@@ -81,8 +32,11 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 		if !ok {
 			return nil, fmt.Errorf("model [%s] not found", modelName)
 		}
-		// 获取表名（优先使用 TableName() 方法）
-		tableName := getTableName(registeredModel)
+		// 从 tableNameMap 获取表名
+		tableName, ok := db.tableNameMap[modelName]
+		if !ok {
+			return nil, fmt.Errorf("table name for model [%s] not found in tableNameMap", modelName)
+		}
 		// 设置主表
 		if i == 0 {
 			query = query.Model(registeredModel)
@@ -108,12 +62,12 @@ func JoinQuery(params JoinParams, dbName ...string) (any, error) {
 				return nil, fmt.Errorf("query field [%s] not found", field)
 			}
 
-			params.SelectFields[i] = formatSelectField(field, tablePrefix)
+			params.SelectFields[i] = formatSelectField(field, db.tableNameMap, tablePrefix)
 		}
 		query = query.Select(params.SelectFields)
 	}
 	// 解析查询条件
-	query, err := parseQueryConditions(params.QueryConditions, query)
+	query, err := parseQueryConditions(params.QueryConditions, db.tableNameMap, query)
 	if err != nil {
 		return nil, err
 	}

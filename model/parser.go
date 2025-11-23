@@ -100,29 +100,39 @@ func isValidFieldName(field string) bool {
 }
 
 // 格式化字段名
-func formatFieldName(field string) string {
+func formatFieldName(field string, tableNameMap map[string]string) string {
 	// 如果包含点号，则分别包装表名和字段名
 	if strings.Contains(field, ".") {
 		parts := strings.Split(field, ".")
 		if len(parts) == 2 {
-			return "`" + parts[0] + "`.`" + parts[1] + "`"
+			modelName := strings.TrimSpace(parts[0])
+			fieldName := strings.TrimSpace(parts[1])
+			// 从 tableNameMap 获取实际表名
+			tableName := getTableNameFromMap(modelName, tableNameMap)
+			return fmt.Sprintf("`%s`.`%s`", tableName, fieldName)
 		}
 		// 如果包含多个点号，只处理第一个点号（表名.字段名）
 		firstDot := strings.Index(field, ".")
-		return "`" + field[:firstDot] + "`.`" + field[firstDot+1:] + "`"
+		modelName := strings.TrimSpace(field[:firstDot])
+		fieldName := strings.TrimSpace(field[firstDot+1:])
+		// 从 tableNameMap 获取实际表名
+		tableName := getTableNameFromMap(modelName, tableNameMap)
+		return fmt.Sprintf("`%s`.`%s`", tableName, fieldName)
 	}
 	// 不包含点号，直接包装
 	return "`" + field + "`"
 }
 
 // 格式化查询字段
-func formatSelectField(field string, tablePrefix string) string {
+func formatSelectField(field string, tableNameMap map[string]string, tablePrefix string) string {
 	// 如果包含点号，处理 table.field 或 table.* 格式
 	if strings.Contains(field, ".") {
 		parts := strings.Split(field, ".")
 		if len(parts) == 2 {
-			tableName := utils.CamelToSnake(parts[0])
-			fieldName := parts[1]
+			modelName := strings.TrimSpace(parts[0])
+			fieldName := strings.TrimSpace(parts[1])
+			// 从 tableNameMap 获取实际表名
+			tableName := getTableNameFromMap(modelName, tableNameMap)
 			// 如果是 table.* 格式
 			if fieldName == "*" {
 				return tablePrefix + tableName + ".*"
@@ -132,8 +142,10 @@ func formatSelectField(field string, tablePrefix string) string {
 		}
 		// 如果包含多个点号，只处理第一个点号
 		firstDot := strings.Index(field, ".")
-		tableName := utils.CamelToSnake(field[:firstDot])
-		fieldName := field[firstDot+1:]
+		modelName := strings.TrimSpace(field[:firstDot])
+		fieldName := strings.TrimSpace(field[firstDot+1:])
+		// 从 tableNameMap 获取实际表名
+		tableName := getTableNameFromMap(modelName, tableNameMap)
 		if fieldName == "*" {
 			return tablePrefix + tableName + ".*"
 		}
@@ -151,7 +163,8 @@ func buildBaseQuery[T any](queryConditions map[string]any, dbName ...string) (*g
 	}
 
 	dbClient := getDBClient(dbName...)
-	query, err := parseQueryConditions(queryConditions, dbClient.db)
+	// 单表查询不需要表名映射，传递 nil
+	query, err := parseQueryConditions(queryConditions, nil, dbClient.db)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +173,7 @@ func buildBaseQuery[T any](queryConditions map[string]any, dbName ...string) (*g
 }
 
 // 查询条件解析
-func parseQueryConditions(queryConditions map[string]any, query ...*gorm.DB) (*gorm.DB, error) {
+func parseQueryConditions(queryConditions map[string]any, tableNameMap map[string]string, query ...*gorm.DB) (*gorm.DB, error) {
 	var db *gorm.DB
 	if len(query) > 0 {
 		db = query[0]
@@ -254,7 +267,7 @@ func parseQueryConditions(queryConditions map[string]any, query ...*gorm.DB) (*g
 	}
 	// 处理AND条件
 	for _, condition := range andConditions {
-		fieldName := formatFieldName(condition.Field)
+		fieldName := formatFieldName(condition.Field, tableNameMap)
 		// 处理特殊操作符
 		switch condition.Operator {
 		case "IS_NULL_OR_EMPTY":
@@ -282,7 +295,7 @@ func parseQueryConditions(queryConditions map[string]any, query ...*gorm.DB) (*g
 		orArgs := make([]any, 0, len(orConditions))
 
 		for _, condition := range orConditions {
-			fieldName := formatFieldName(condition.Field)
+			fieldName := formatFieldName(condition.Field, tableNameMap)
 			// 处理特殊操作符
 			switch condition.Operator {
 			case "IS_NULL_OR_EMPTY":
@@ -315,7 +328,7 @@ func parseQueryConditions(queryConditions map[string]any, query ...*gorm.DB) (*g
 }
 
 // 解析连接条件
-func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondition {
+func parseJoinConditions(joinConditions []string, tableNameMap map[string]string, dbName ...string) []JoinCondition {
 	result := make([]JoinCondition, 0, len(joinConditions))
 	// 获取表前缀
 	tablePrefix := getDBClient(dbName...).prefix
@@ -350,7 +363,7 @@ func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondit
 		}
 
 		// 解析多个条件（支持 AND/OR 连接）
-		onClause := parseJoinOnClause(condition, tablePrefix)
+		onClause := parseJoinOnClause(condition, tableNameMap, tablePrefix)
 		if onClause == "" {
 			continue
 		}
@@ -363,7 +376,7 @@ func parseJoinConditions(joinConditions []string, dbName ...string) []JoinCondit
 }
 
 // 解析 JOIN ON 子句，支持多个条件用 AND/OR 连接
-func parseJoinOnClause(condition string, tablePrefix string) string {
+func parseJoinOnClause(condition string, tableNameMap map[string]string, tablePrefix string) string {
 	// 使用正则表达式分割 AND/OR，同时保留分隔符和原始大小写
 	andOrRegex := regexp.MustCompile(`\s+(?i)(AND|OR)\s+`)
 
@@ -371,7 +384,7 @@ func parseJoinOnClause(condition string, tablePrefix string) string {
 	matches := andOrRegex.FindAllStringSubmatchIndex(condition, -1)
 	if len(matches) == 0 {
 		// 单个条件
-		formatted := parseSingleJoinCondition(condition, tablePrefix)
+		formatted := parseSingleJoinCondition(condition, tableNameMap, tablePrefix)
 		return formatted
 	}
 
@@ -400,7 +413,7 @@ func parseJoinOnClause(condition string, tablePrefix string) string {
 	// 解析每个条件并格式化
 	formattedConditions := make([]string, 0, len(conditions))
 	for _, cond := range conditions {
-		formatted := parseSingleJoinCondition(cond, tablePrefix)
+		formatted := parseSingleJoinCondition(cond, tableNameMap, tablePrefix)
 		if formatted != "" {
 			formattedConditions = append(formattedConditions, formatted)
 		}
@@ -430,7 +443,7 @@ func parseJoinOnClause(condition string, tablePrefix string) string {
 }
 
 // 解析单个连接条件
-func parseSingleJoinCondition(condition string, tablePrefix string) string {
+func parseSingleJoinCondition(condition string, tableNameMap map[string]string, tablePrefix string) string {
 	condition = strings.TrimSpace(condition)
 	if condition == "" {
 		return ""
@@ -461,16 +474,16 @@ func parseSingleJoinCondition(condition string, tablePrefix string) string {
 	rightPart := strings.TrimSpace(condition[operatorIndex+len(operator):])
 
 	// 解析左侧字段
-	leftField := parseJoinField(leftPart, tablePrefix)
+	leftField := parseJoinField(leftPart, tableNameMap, tablePrefix)
 
 	// 解析右侧（可能是字段或值）
-	rightField := parseJoinFieldOrValue(rightPart, tablePrefix)
+	rightField := parseJoinFieldOrValue(rightPart, tableNameMap, tablePrefix)
 
 	return fmt.Sprintf("%s %s %s", leftField, operator, rightField)
 }
 
 // 解析连接字段或值
-func parseJoinFieldOrValue(part string, tablePrefix string) string {
+func parseJoinFieldOrValue(part string, tableNameMap map[string]string, tablePrefix string) string {
 	part = strings.TrimSpace(part)
 	if part == "" {
 		return ""
@@ -489,7 +502,7 @@ func parseJoinFieldOrValue(part string, tablePrefix string) string {
 	}
 
 	// 否则当作字段处理（table.field 或 field）
-	return parseJoinField(part, tablePrefix)
+	return parseJoinField(part, tableNameMap, tablePrefix)
 }
 
 // 判断字符串是否为数字
@@ -518,22 +531,45 @@ func isNumeric(s string) bool {
 }
 
 // 解析连接字段
-func parseJoinField(field string, tablePrefix string) string {
+func parseJoinField(field string, tableNameMap map[string]string, tablePrefix string) string {
 	field = strings.TrimSpace(field)
 	// 如果包含点号，说明是 table.field 格式
 	if strings.Contains(field, ".") {
 		parts := strings.Split(field, ".")
 		if len(parts) == 2 {
-			tableName := utils.CamelToSnake(strings.TrimSpace(parts[0]))
+			modelName := strings.TrimSpace(parts[0])
 			fieldName := utils.CamelToSnake(strings.TrimSpace(parts[1]))
+			// 从 tableNameMap 获取实际表名
+			tableName := getTableNameFromMap(modelName, tableNameMap)
 			return fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, fieldName)
 		}
 		// 如果包含多个点号，只处理第一个点号
 		firstDot := strings.Index(field, ".")
-		tableName := utils.CamelToSnake(strings.TrimSpace(field[:firstDot]))
+		modelName := strings.TrimSpace(field[:firstDot])
 		fieldName := utils.CamelToSnake(strings.TrimSpace(field[firstDot+1:]))
+		// 从 tableNameMap 获取实际表名
+		tableName := getTableNameFromMap(modelName, tableNameMap)
 		return fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, fieldName)
 	}
 	// 不包含点号，直接转换
 	return fmt.Sprintf("`%s`", tablePrefix+utils.CamelToSnake(field))
+}
+
+// 从 tableNameMap 获取表名，如果找不到则使用默认命名规则
+func getTableNameFromMap(modelName string, tableNameMap map[string]string) string {
+	if tableNameMap == nil {
+		// 如果没有映射，使用默认命名规则
+		return utils.CamelToSnake(modelName)
+	}
+	// 先尝试直接查找（可能是模型类型名，如 "Notice"）
+	if tableName, ok := tableNameMap[modelName]; ok {
+		return tableName
+	}
+	// 尝试蛇形命名（如 "notice"）
+	snakeName := utils.CamelToSnake(modelName)
+	if tableName, ok := tableNameMap[snakeName]; ok {
+		return tableName
+	}
+	// 如果都找不到，使用默认命名规则
+	return snakeName
 }

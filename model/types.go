@@ -100,6 +100,7 @@ type JoinParams struct {
 	JoinConditions []string `json:"join_conditions"`
 	// 查询字段，如: []string{"table1_name.field1", "table2_name.field2"}
 	// 也可以是: []string{"table1_name.*", "table2_name.field2"}，表示查询table1表的所有字段和table2表的field2字段
+	// 也可以是: []string{"table1_name.field1 AS field1_alias", "table2_name.field2 AS field2_alias"}，表示查询table1表的field1字段并别名为field1_alias，查询table2表的field2字段并别名为field2_alias
 	SelectFields []string `json:"select_fields"`
 	// 分页参数，如果需要分页查询，则需要指定
 	PageParams *PageParams `json:"page_params"`

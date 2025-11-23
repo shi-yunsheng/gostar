@@ -125,9 +125,31 @@ func formatFieldName(field string, tableNameMap map[string]string) string {
 
 // 格式化查询字段
 func formatSelectField(field string, tableNameMap map[string]string, tablePrefix string) string {
-	// 如果包含点号，处理 table.field 或 table.* 格式
-	if strings.Contains(field, ".") {
-		parts := strings.Split(field, ".")
+	field = strings.TrimSpace(field)
+
+	// 检查是否包含 AS 别名（不区分大小写）
+	asIndex := -1
+	upperField := strings.ToUpper(field)
+	// 查找 " AS " 的位置（前后都有空格）
+	if idx := strings.Index(upperField, " AS "); idx != -1 {
+		asIndex = idx
+	}
+
+	var fieldPart, aliasPart string
+	if asIndex != -1 {
+		// 分离字段部分和别名部分
+		fieldPart = strings.TrimSpace(field[:asIndex])
+		aliasPart = strings.TrimSpace(field[asIndex+4:]) // " AS " 长度为 4
+	} else {
+		fieldPart = field
+		aliasPart = ""
+	}
+
+	// 格式化字段部分
+	var formattedField string
+	if strings.Contains(fieldPart, ".") {
+		// 处理 table.field 或 table.* 格式
+		parts := strings.Split(fieldPart, ".")
 		if len(parts) == 2 {
 			modelName := strings.TrimSpace(parts[0])
 			fieldName := strings.TrimSpace(parts[1])
@@ -135,24 +157,36 @@ func formatSelectField(field string, tableNameMap map[string]string, tablePrefix
 			tableName := getTableNameFromMap(modelName, tableNameMap)
 			// 如果是 table.* 格式
 			if fieldName == "*" {
-				return tablePrefix + tableName + ".*"
+				formattedField = tablePrefix + tableName + ".*"
+			} else {
+				// 如果是 table.field 格式
+				formattedField = tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
 			}
-			// 如果是 table.field 格式
-			return tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+		} else {
+			// 如果包含多个点号，只处理第一个点号
+			firstDot := strings.Index(fieldPart, ".")
+			modelName := strings.TrimSpace(fieldPart[:firstDot])
+			fieldName := strings.TrimSpace(fieldPart[firstDot+1:])
+			// 从 tableNameMap 获取实际表名
+			tableName := getTableNameFromMap(modelName, tableNameMap)
+			if fieldName == "*" {
+				formattedField = tablePrefix + tableName + ".*"
+			} else {
+				formattedField = tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+			}
 		}
-		// 如果包含多个点号，只处理第一个点号
-		firstDot := strings.Index(field, ".")
-		modelName := strings.TrimSpace(field[:firstDot])
-		fieldName := strings.TrimSpace(field[firstDot+1:])
-		// 从 tableNameMap 获取实际表名
-		tableName := getTableNameFromMap(modelName, tableNameMap)
-		if fieldName == "*" {
-			return tablePrefix + tableName + ".*"
-		}
-		return tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+	} else {
+		// 不包含点号，直接转换并添加前缀
+		formattedField = tablePrefix + utils.CamelToSnake(fieldPart)
 	}
-	// 不包含点号，直接转换并添加前缀
-	return tablePrefix + utils.CamelToSnake(field)
+
+	// 如果有别名，添加 AS 别名
+	if aliasPart != "" {
+		// 别名不需要转换，保持原样
+		return formattedField + " AS " + aliasPart
+	}
+
+	return formattedField
 }
 
 // 构建基础查询

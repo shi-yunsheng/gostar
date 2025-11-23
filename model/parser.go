@@ -123,6 +123,17 @@ func formatFieldName(field string, tableNameMap map[string]string) string {
 	return "`" + field + "`"
 }
 
+// 提取字段部分（去除 AS 别名）
+func extractFieldPart(field string) string {
+	field = strings.TrimSpace(field)
+	upperField := strings.ToUpper(field)
+	// 查找 " AS " 的位置（前后都有空格）
+	if idx := strings.Index(upperField, " AS "); idx != -1 {
+		return strings.TrimSpace(field[:idx])
+	}
+	return field
+}
+
 // 格式化查询字段
 func formatSelectField(field string, tableNameMap map[string]string, tablePrefix string) string {
 	field = strings.TrimSpace(field)
@@ -159,8 +170,8 @@ func formatSelectField(field string, tableNameMap map[string]string, tablePrefix
 			if fieldName == "*" {
 				formattedField = tablePrefix + tableName + ".*"
 			} else {
-				// 如果是 table.field 格式
-				formattedField = tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+				// 如果是 table.field 格式，用反引号包装
+				formattedField = fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, utils.CamelToSnake(fieldName))
 			}
 		} else {
 			// 如果包含多个点号，只处理第一个点号
@@ -172,18 +183,19 @@ func formatSelectField(field string, tableNameMap map[string]string, tablePrefix
 			if fieldName == "*" {
 				formattedField = tablePrefix + tableName + ".*"
 			} else {
-				formattedField = tablePrefix + tableName + "." + utils.CamelToSnake(fieldName)
+				// 用反引号包装表名和字段名
+				formattedField = fmt.Sprintf("`%s`.`%s`", tablePrefix+tableName, utils.CamelToSnake(fieldName))
 			}
 		}
 	} else {
-		// 不包含点号，直接转换并添加前缀
-		formattedField = tablePrefix + utils.CamelToSnake(fieldPart)
+		// 不包含点号，直接转换并添加前缀，用反引号包装
+		formattedField = fmt.Sprintf("`%s`", tablePrefix+utils.CamelToSnake(fieldPart))
 	}
 
 	// 如果有别名，添加 AS 别名
 	if aliasPart != "" {
-		// 别名不需要转换，保持原样
-		return formattedField + " AS " + aliasPart
+		// 别名需要用反引号包装，以支持特殊字符
+		return formattedField + " AS `" + aliasPart + "`"
 	}
 
 	return formattedField

@@ -56,8 +56,9 @@ func JoinQuery[T any](params JoinParams, dbName ...string) (any, error) {
 	// 如果指定查询字段
 	if len(params.SelectFields) > 0 {
 		for i, field := range params.SelectFields {
-			// 验证字段名
-			if !isValidFieldName(field) {
+			// 提取字段部分（去除 AS 别名）进行验证
+			fieldPart := extractFieldPart(field)
+			if !isValidFieldName(fieldPart) {
 				return nil, fmt.Errorf("query field [%s] not found", field)
 			}
 

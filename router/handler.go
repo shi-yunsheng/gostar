@@ -151,6 +151,14 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 		return nil
 	}
 	// 验证SecretKey
+	if r.secretKey != nil {
+		for key, value := range r.secretKey {
+			if req.GetHeader(key) != value {
+				handler.Unauthorized(w, req)
+				return nil
+			}
+		}
+	}
 	if route.SecretKey != nil {
 		for key, value := range route.SecretKey {
 			if req.GetHeader(key) != value {

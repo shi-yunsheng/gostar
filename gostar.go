@@ -24,7 +24,7 @@ type goStar struct {
 // 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance = &goStar{
-		version: "1.0.42-beta",
+		version: "1.0.43-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}

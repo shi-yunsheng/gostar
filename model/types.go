@@ -108,10 +108,10 @@ type JoinParams struct {
 
 // 基础模型结构，包含ID、创建时间、更新时间和删除时间
 type BaseModel struct {
-	ID        string `gorm:"primarykey" json:"id"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID        string         `gorm:"column:id;type:varchar(50);primarykey" json:"id"`
+	CreatedAt time.Time      `gorm:"column:created_at;type:datetime;not null;default:current_timestamp()" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"column:updated_at;type:datetime;not null;default:current_timestamp()" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;type:datetime;index" json:"-"`
 }
 
 // 创建前钩子，如果ID为空，则生成雪花ID

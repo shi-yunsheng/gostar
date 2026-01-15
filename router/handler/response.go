@@ -37,6 +37,11 @@ func (w *Response) WriteHeader(code int) {
 	}
 	w.StatusCode = code
 	w.Written = true
+
+	if w.ws != nil {
+		return
+	}
+
 	w.ResponseWriter.WriteHeader(code)
 }
 
@@ -45,6 +50,10 @@ func (w *Response) Write(b []byte) (int, error) {
 	if !w.Written {
 		w.StatusCode = http.StatusOK
 		w.Written = true
+	}
+	if w.ws != nil {
+		w.body = append(w.body, b...)
+		return len(b), nil
 	}
 	w.body = append(w.body, b...)
 	return w.ResponseWriter.Write(b)

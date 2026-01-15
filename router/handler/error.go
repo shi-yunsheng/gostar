@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/shi-yunsheng/gostar/utils"
 )
@@ -159,106 +160,187 @@ func errorPage(errorHtml ErrorHtml) string {
 func NotFound(w *Response, r Request) {
 	w.WriteHeader(http.StatusNotFound)
 
-	errorHtml := ErrorHtml{
-		Title:       "404 Not Found",
-		Code:        "404",
-		Description: "Not Found",
-		Message:     "Sorry, the page you visited does not exist.",
+	result := map[string]any{
+		"code":    404,
+		"message": "Not Found",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		errorHtml := ErrorHtml{
+			Title:       "404 Not Found",
+			Code:        "404",
+			Description: "Not Found",
+			Message:     "Sorry, the page you visited does not exist.",
+		}
+
+		w.Html(errorPage(errorHtml))
+	} else {
+		w.Json(result)
+	}
 }
 
 // 405 请求方法不允许
 func MethodNotAllowed(w *Response, r Request) {
 	w.WriteHeader(http.StatusMethodNotAllowed)
 
-	errorHtml := ErrorHtml{
-		Title:       "405 Method Not Allowed",
-		Code:        "405",
-		Description: "Method Not Allowed",
-		Message:     "Sorry, the method you used is not allowed.",
+	result := map[string]any{
+		"code":    405,
+		"message": "Method Not Allowed",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		errorHtml := ErrorHtml{
+			Title:       "405 Method Not Allowed",
+			Code:        "405",
+			Description: "Method Not Allowed",
+			Message:     "Sorry, the method you used is not allowed.",
+		}
+		w.Html(errorPage(errorHtml))
+	} else {
+		w.Json(result)
+	}
 }
 
 // 401 未授权
 func Unauthorized(w *Response, r Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 
-	errorHtml := ErrorHtml{
-		Title:       "401 Unauthorized",
-		Code:        "401",
-		Description: "Unauthorized",
-		Message:     "Sorry, you are not authorized to access this page.",
+	result := map[string]any{
+		"code":    401,
+		"message": "Unauthorized",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		errorHtml := ErrorHtml{
+			Title:       "401 Unauthorized",
+			Code:        "401",
+			Description: "Unauthorized",
+			Message:     "Sorry, you are not authorized to access this page.",
+		}
+		w.Html(errorPage(errorHtml))
+	} else {
+		w.Json(result)
+	}
 }
 
 // 403 禁止访问
 func Forbidden(w *Response, r Request) {
 	w.WriteHeader(http.StatusForbidden)
 
-	errorHtml := ErrorHtml{
-		Title:       "403 Forbidden",
-		Code:        "403",
-		Description: "Forbidden",
-		Message:     "Sorry, you are not allowed to access this page.",
+	result := map[string]any{
+		"code":    403,
+		"message": "Forbidden",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		errorHtml := ErrorHtml{
+			Title:       "403 Forbidden",
+			Code:        "403",
+			Description: "Forbidden",
+			Message:     "Sorry, you are not allowed to access this page.",
+		}
+		w.Html(errorPage(errorHtml))
+	} else {
+		w.Json(result)
+	}
 }
 
 // 500 内部服务器错误
-func InternalServerError(w *Response, r Request, err error) {
+func InternalServerError(w *Response, r Request, err ...error) {
 	w.WriteHeader(http.StatusInternalServerError)
 
-	errorHtml := ErrorHtml{
-		Title:       "500 Internal Server Error",
-		Code:        "500",
-		Description: "Internal Server Error",
-		Message:     fmt.Sprintf("Sorry, the server is busy, please try again later. ERROR: %s", err.Error()),
+	result := map[string]any{
+		"code":    500,
+		"message": "Internal Server Error",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		message := "Sorry, the server is busy, please try again later."
+		if len(err) > 0 {
+			message += fmt.Sprintf(" ERROR: %s", err[0].Error())
+		}
+
+		errorHtml := ErrorHtml{
+			Title:       "500 Internal Server Error",
+			Code:        "500",
+			Description: "Internal Server Error",
+			Message:     message,
+		}
+
+		if debug {
+			errorHtml.Stack = utils.GetStackTrace()
+		}
+
+		w.Html(errorPage(errorHtml))
+	} else {
+		if debug {
+			result["stack"] = utils.GetStackTrace()
+		}
+
+		w.Json(result)
+	}
 }
 
 // 400 请求错误
-func BadRequest(w *Response, r Request, err error) {
+func BadRequest(w *Response, r Request, err ...error) {
 	w.WriteHeader(http.StatusBadRequest)
 
-	errorHtml := ErrorHtml{
-		Title:       "400 Bad Request",
-		Code:        "400",
-		Description: "Bad Request",
-		Message:     fmt.Sprintf("Sorry, the request is invalid. ERROR: %s", err.Error()),
+	result := map[string]any{
+		"code":    400,
+		"message": "Bad Request",
 	}
 
-	if debug {
-		errorHtml.Stack = utils.GetStackTrace()
+	if r.IsWebsocket() {
+		conn := w.GetWebsocketConn()
+		conn.SendJson(result)
+		return
 	}
 
-	w.Html(errorPage(errorHtml))
+	if r.Method == "GET" && strings.Contains(r.GetHeader("Accept"), "text/html") {
+		message := "Sorry, the request is invalid."
+		if len(err) > 0 {
+			message += fmt.Sprintf(" ERROR: %s", err[0].Error())
+		}
+
+		errorHtml := ErrorHtml{
+			Title:       "400 Bad Request",
+			Code:        "400",
+			Description: "Bad Request",
+			Message:     message,
+		}
+
+		w.Html(errorPage(errorHtml))
+	} else {
+		w.Json(result)
+	}
 }

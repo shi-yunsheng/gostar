@@ -140,42 +140,22 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	}
 
 	if route == nil {
-		if req.Method == "GET" {
-			handler.NotFound(w, req)
-			return nil
-		} else {
-			return map[string]any{
-				"code":    404,
-				"message": "Not Found",
-			}
-		}
+		handler.NotFound(w, req)
+		return nil
 	}
+
 	// 验证请求方式（递归检查父路由）
 	method := r.getMethod(route)
 	if method != "" && string(method) != req.Method {
-		if req.Method == "GET" {
-			handler.MethodNotAllowed(w, req)
-			return nil
-		} else {
-			return map[string]any{
-				"code":    405,
-				"message": "Method Not Allowed",
-			}
-		}
+		handler.MethodNotAllowed(w, req)
+		return nil
 	}
 	// 验证SecretKey
 	if route.SecretKey != nil {
 		for key, value := range route.SecretKey {
 			if req.GetHeader(key) != value {
-				if req.Method == "GET" {
-					handler.Unauthorized(w, req)
-					return nil
-				} else {
-					return map[string]any{
-						"code":    401,
-						"message": "Unauthorized",
-					}
-				}
+				handler.Unauthorized(w, req)
+				return nil
 			}
 		}
 	}
@@ -184,20 +164,12 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	if route.Bind != nil {
 		model, err := route.Validate(&req)
 		if err != nil {
-			if req.Method == "GET" {
-				handler.BadRequest(w, req, err)
-				return nil
-			} else {
-				// 此处的model是route.Validate()自定义的响应
-				if model != nil {
-					return model
-				}
-				return map[string]any{
-					"code":    400,
-					"message": "Bad Request",
-					"error":   err.Error(),
-				}
+			if model != nil {
+				return model
 			}
+
+			handler.BadRequest(w, req, err)
+			return nil
 		}
 		req.SetBindModel(model)
 	}
@@ -217,15 +189,8 @@ func (r *Router) serveHTTP(w *handler.Response, req handler.Request) any {
 	}
 	// 如果handlerFunc为nil，返回404
 	if handlerFunc == nil {
-		if req.Method == "GET" {
-			handler.NotFound(w, req)
-			return nil
-		} else {
-			return map[string]any{
-				"code":    404,
-				"message": "Not Found",
-			}
-		}
+		handler.NotFound(w, req)
+		return nil
 	}
 	// 调用handler并返回结果
 	return handlerFunc(w, req)

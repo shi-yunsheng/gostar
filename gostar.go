@@ -24,7 +24,7 @@ type goStar struct {
 // 新建GoStar实例
 func New(configName ...string) *goStar {
 	instance = &goStar{
-		version: "1.0.41-beta",
+		version: "1.0.42-beta",
 		config:  getConfig(configName...),
 		router:  router.NewRouter(),
 	}
@@ -36,7 +36,6 @@ func New(configName ...string) *goStar {
 func (g *goStar) initGoStar() {
 	// 如果调试模式已开启，则开启各个组件的调试模式
 	if g.config.Debug {
-		middleware.EnableDebug()
 		handler.EnableDebug()
 		model.EnableDebug()
 	}

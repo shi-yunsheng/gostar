@@ -1,7 +1,10 @@
 // 提供时间相关的解析和格式化功能
 package date
 
-import "time"
+import (
+	"time"
+	_ "time/tzdata"
+)
 
 // 根据指定格式获取今天的日期
 func GetToday(format ...DateFormat) string {
@@ -18,4 +21,9 @@ func GetTimestamp(isMillisecond ...bool) int64 {
 		return time.Now().UnixMilli()
 	}
 	return time.Now().Unix()
+}
+
+// 获取当前时间，返回 time.Time 类型
+func Now() time.Time {
+	return time.Now()
 }

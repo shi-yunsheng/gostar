@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -87,7 +88,12 @@ func (w *WebsocketConn) SendJson(data any) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	return w.ws.WriteJSON(data)
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return w.ws.WriteMessage(websocket.TextMessage, jsonData)
 }
 
 // 发送文件

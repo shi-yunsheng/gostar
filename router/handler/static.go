@@ -167,13 +167,12 @@ func StaticServer(handler Handler, staticConfig *Static) Handler {
 			if len(files) > 0 {
 				filepaths := make([]string, len(files))
 
-				maxSize, err := utils.ParseSize(staticConfig.Upload.MaxSize)
-				if err != nil {
-					InternalServerError(w, r, err)
-					return nil
+				var maxSize int64 = 0
+				if staticConfig.Upload.MaxSize != "" {
+					maxSize, _ = utils.ParseSize(staticConfig.Upload.MaxSize)
 				}
 				// 创建日期目录
-				dateDir := utils.JoinPath(staticConfig.Path, date.GetToday())
+				dateDir := utils.JoinPath(staticConfig.Path, date.GetToday(date.FORMAT_DATE))
 				uploadMutex.Lock()
 				utils.Mkdir(dateDir)
 				uploadMutex.Unlock()
@@ -211,7 +210,7 @@ func StaticServer(handler Handler, staticConfig *Static) Handler {
 							}
 						}
 					} else {
-						err = utils.SaveFile(file, filepath, 0)
+						err := utils.SaveFile(file, filepath, 0)
 						if err != nil {
 							InternalServerError(w, r, err)
 							return nil

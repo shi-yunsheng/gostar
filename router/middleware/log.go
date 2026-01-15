@@ -33,6 +33,10 @@ func LogMiddleware(next handler.Handler) handler.Handler {
 		response := next(w, r)
 		// 计算请求处理时间
 		duration := time.Since(startTime)
+		// 慢请求警告
+		if duration > 3*time.Second {
+			logger.W("Slow request: %s %s - Duration: %v", method, path, duration)
+		}
 		// 输出请求完成信息
 		switch {
 		case w.StatusCode >= 100 && w.StatusCode < 200:

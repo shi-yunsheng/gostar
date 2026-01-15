@@ -97,6 +97,83 @@ func main() {
 - `model.InitRedis` 支持多实例配置，内置常见的连接与超时控制选项。
 - `config.go` 内置 YAML 配置解析逻辑，启动时自动加载并注入到框架上下文。
 
+#### 查询条件使用
+
+查询条件支持多种格式，**所有条件值必须是数组（切片）**：
+
+**1. 默认 AND 条件（不写后缀）**
+```go
+// 单个条件
+queryConditions := map[string]any{
+    "age": []any{18},  // age = 18
+}
+
+// 多个条件（AND 连接）
+queryConditions := map[string]any{
+    "age": []any{">18", "<=65"},  // age > 18 AND age <= 65
+    "status": []any{1},            // status = 1
+}
+// 生成的 SQL: WHERE age > 18 AND age <= 65 AND status = 1
+```
+
+**2. OR 条件**
+```go
+// 使用 ::__OR__ 后缀
+queryConditions := map[string]any{
+    "age::__OR__": []any{18, 20, 25},  // age = 18 OR age = 20 OR age = 25
+}
+
+// OR 条件支持操作符
+queryConditions := map[string]any{
+    "age::__OR__": []any{">30", "<18"},  // age > 30 OR age < 18
+}
+```
+
+**3. AND 条件（显式指定）**
+```go
+// 使用 ::__AND__ 后缀（与默认行为相同，但更明确）
+queryConditions := map[string]any{
+    "age::__AND__": []any{">18", "<=65"},  // age > 18 AND age <= 65
+}
+```
+
+**4. IN 条件**
+```go
+// 使用 ::__IN__ 后缀
+queryConditions := map[string]any{
+    "status::__IN__": []any{1, 2, 3},  // status IN (1, 2, 3)
+}
+```
+
+**5. 支持的操作符**
+- 比较操作符：`=`, `!=`, `<>`, `>`, `>=`, `<`, `<=`
+- 模糊查询：值中包含 `%` 时自动使用 `LIKE`
+- 空值查询：`=__EMPTY__`（查询 NULL 或空字符串），`!=__EMPTY__`（查询非空）
+
+**6. 混合使用示例**
+```go
+queryConditions := map[string]any{
+    // 默认 AND 条件
+    "status": []any{1},
+    "age": []any{">18", "<=65"},  // age > 18 AND age <= 65
+    
+    // OR 条件
+    "city::__OR__": []any{"北京", "上海", "广州"},
+    
+    // IN 条件
+    "type::__IN__": []any{1, 2, 3},
+}
+// 生成的 SQL: WHERE status = 1 AND age > 18 AND age <= 65 
+//           AND (city = '北京' OR city = '上海' OR city = '广州')
+//           AND type IN (1, 2, 3)
+```
+
+**注意事项：**
+- 所有条件值必须是数组或切片，即使是单个条件也要写成数组
+- 字段名会自动转换为 snake_case 格式
+- 多个字段之间默认是 AND 关系
+- 同一字段的多个条件会根据后缀类型进行 OR 或 AND 连接
+
 ### 日志系统
 - `logger` 模块原生支持彩色输出、文件保存、最大文件大小、最大保存天数与自动删除策略。
 - 与框架深度集成：初始化阶段根据配置自动开启或关闭相关功能。

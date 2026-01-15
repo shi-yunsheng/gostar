@@ -5,15 +5,7 @@ import (
 
 	"github.com/shi-yunsheng/gostar/logger"
 	"github.com/shi-yunsheng/gostar/router/handler"
-	"github.com/shi-yunsheng/gostar/utils"
 )
-
-var debug = false
-
-// 开启调试模式
-func EnableDebug() {
-	debug = true
-}
 
 // 错误处理中间件
 func ErrorMiddleware(next handler.Handler) handler.Handler {
@@ -21,48 +13,7 @@ func ErrorMiddleware(next handler.Handler) handler.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				logger.E("Error: %v", err)
-				// 如果在调试模式下，也将堆栈信息返回给客户端
-				if debug {
-					stackInfo := utils.GetStackTrace()
-
-					logger.E("Stack Info:\n%s", stackInfo)
-
-					if r.IsWebsocket() {
-						conn := w.GetWebsocketConn()
-						conn.SendJson(handler.ResponseBody{
-							Code:    500,
-							Message: fmt.Sprintf("internal server error: %v\n\nstack info:\n%s", err, stackInfo),
-						})
-					} else {
-						if r.Method == "GET" {
-							handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
-						} else {
-							w.Json(map[string]any{
-								"code":    500,
-								"message": fmt.Sprintf("internal server error: %v", err),
-								"stack":   stackInfo,
-							})
-						}
-					}
-					return
-				}
-
-				if r.IsWebsocket() {
-					conn := w.GetWebsocketConn()
-					conn.SendJson(handler.ResponseBody{
-						Code:    500,
-						Message: fmt.Sprintf("internal server error: %v", err),
-					})
-				} else {
-					if r.Method == "GET" {
-						handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
-					} else {
-						w.Json(map[string]any{
-							"error":   500,
-							"message": fmt.Sprintf("internal server error: %v", err),
-						})
-					}
-				}
+				handler.InternalServerError(w, r, fmt.Errorf("internal server error: %v", err))
 			}
 		}()
 		// 继续处理请求并返回结果

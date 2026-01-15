@@ -218,6 +218,59 @@ func buildBaseQuery[T any](queryConditions map[string]any, dbName ...string) (*g
 	return query.Model(model), nil
 }
 
+// 解析单个条件值，返回操作符和值
+func parseSingleCondition(value any) (string, any, error) {
+	valueStr := fmt.Sprintf("%v", value)
+
+	if strings.Contains(valueStr, "%") {
+		return "LIKE", valueStr, nil
+	} else if matches := operatorRegex.FindStringSubmatch(valueStr); len(matches) == 3 {
+		operator := matches[1]
+		val := strings.TrimSpace(matches[2])
+		// 处理__EMPTY__标记
+		switch val {
+		case "__EMPTY__":
+			switch operator {
+			case "=":
+				// 查询空值：IS NULL OR = ''
+				return "IS_NULL_OR_EMPTY", "", nil
+			case "!=", "<>":
+				// 查询非空值：IS NOT NULL AND <> ''
+				return "IS_NOT_NULL_AND_NOT_EMPTY", "", nil
+			}
+		case "":
+			return "", nil, fmt.Errorf("operator format error: %s", valueStr)
+		}
+		return operator, val, nil
+	} else {
+		return "=", value, nil
+	}
+}
+
+// 应用单个条件到查询
+func applyCondition(db *gorm.DB, fieldName string, operator string, value any) *gorm.DB {
+	switch operator {
+	case "IS_NULL_OR_EMPTY":
+		// 查询空值：IS NULL OR = ''
+		return db.Where(fmt.Sprintf("(%s IS NULL OR %s = '')", fieldName, fieldName))
+	case "IS_NOT_NULL_AND_NOT_EMPTY":
+		// 查询非空值：IS NOT NULL AND <> ''
+		return db.Where(fmt.Sprintf("(%s IS NOT NULL AND %s <> '')", fieldName, fieldName))
+	case "IN":
+		// 处理 IN 操作符（数组值）
+		if values, ok := value.([]any); ok && len(values) > 0 {
+			placeholders := strings.Repeat("?,", len(values))
+			placeholders = placeholders[:len(placeholders)-1] // 移除最后一个逗号
+			queryStr := fmt.Sprintf("%s IN (%s)", fieldName, placeholders)
+			return db.Where(queryStr, values...)
+		}
+		return db
+	default:
+		queryStr := fmt.Sprintf("%s %s ?", fieldName, operator)
+		return db.Where(queryStr, value)
+	}
+}
+
 // 查询条件解析
 func parseQueryConditions(queryConditions map[string]any, tableNameMap map[string]string, query ...*gorm.DB) (*gorm.DB, error) {
 	var db *gorm.DB
@@ -230,144 +283,110 @@ func parseQueryConditions(queryConditions map[string]any, tableNameMap map[strin
 	if len(queryConditions) == 0 {
 		return db, nil
 	}
-	// 预分配切片容量
-	conditions := make([]QueryCondition, 0, len(queryConditions))
 
 	for key, value := range queryConditions {
-		condition := QueryCondition{}
-		// 检查是否为OR条件
-		if strings.HasSuffix(key, "::__OR__") {
-			condition.IsOr = true
-			condition.Field = utils.CamelToSnake(strings.TrimSuffix(key, "::__OR__"))
-		} else {
-			condition.IsOr = false
-			condition.Field = utils.CamelToSnake(key)
-		}
-		// 验证字段名
-		if !isValidFieldName(condition.Field) {
-			return nil, fmt.Errorf("invalid field name: %s", condition.Field)
-		}
 		// 检测值是否为数组或切片
 		valueType := reflect.TypeOf(value)
 		valueKind := valueType.Kind()
 		isArrayOrSlice := valueKind == reflect.Array || valueKind == reflect.Slice
 
-		// 如果是数组或切片，使用 IN 操作符
-		if isArrayOrSlice {
-			valueValue := reflect.ValueOf(value)
-			if valueValue.Len() == 0 {
-				// 空数组，跳过此条件
-				continue
-			}
-			// 将数组/切片转换为 []any
-			values := make([]any, valueValue.Len())
-			for i := 0; i < valueValue.Len(); i++ {
-				values[i] = valueValue.Index(i).Interface()
-			}
-			condition.Operator = "IN"
-			condition.Value = values
-		} else {
-			// 解析操作符和值
-			valueStr := fmt.Sprintf("%v", value)
-
-			if strings.Contains(valueStr, "%") {
-				condition.Operator = "LIKE"
-				condition.Value = valueStr
-			} else if matches := operatorRegex.FindStringSubmatch(valueStr); len(matches) == 3 {
-				condition.Operator = matches[1]
-				condition.Value = strings.TrimSpace(matches[2])
-				// 处理__EMPTY__标记
-				switch condition.Value {
-				case "__EMPTY__":
-					switch condition.Operator {
-					case "=":
-						// 查询空值：IS NULL OR = ''
-						condition.Operator = "IS_NULL_OR_EMPTY"
-						condition.Value = ""
-					case "!=", "<>":
-						// 查询非空值：IS NOT NULL AND <> ''
-						condition.Operator = "IS_NOT_NULL_AND_NOT_EMPTY"
-						condition.Value = ""
-					}
-				case "":
-					return nil, fmt.Errorf("operator format error for field [%s]: %s", condition.Field, valueStr)
-				}
-			} else {
-				condition.Operator = "="
-				condition.Value = value
-			}
+		// 所有格式都必须是数组/切片
+		if !isArrayOrSlice {
+			return nil, fmt.Errorf("field [%s]: value must be an array or slice, got %T", key, value)
 		}
 
-		conditions = append(conditions, condition)
-	}
-	// 分离AND和OR条件
-	andConditions := make([]QueryCondition, 0)
-	orConditions := make([]QueryCondition, 0)
-
-	for _, condition := range conditions {
-		if condition.IsOr {
-			orConditions = append(orConditions, condition)
-		} else {
-			andConditions = append(andConditions, condition)
+		valueValue := reflect.ValueOf(value)
+		if valueValue.Len() == 0 {
+			// 空数组，跳过此条件
+			continue
 		}
-	}
-	// 处理AND条件
-	for _, condition := range andConditions {
-		fieldName := formatFieldName(condition.Field, tableNameMap)
-		// 处理特殊操作符
-		switch condition.Operator {
-		case "IS_NULL_OR_EMPTY":
-			// 查询空值：IS NULL OR = ''
-			db = db.Where(fmt.Sprintf("(%s IS NULL OR %s = '')", fieldName, fieldName))
-		case "IS_NOT_NULL_AND_NOT_EMPTY":
-			// 查询非空值：IS NOT NULL AND <> ''
-			db = db.Where(fmt.Sprintf("(%s IS NOT NULL AND %s <> '')", fieldName, fieldName))
+
+		// 将数组/切片转换为 []any
+		values := make([]any, valueValue.Len())
+		for i := 0; i < valueValue.Len(); i++ {
+			values[i] = valueValue.Index(i).Interface()
+		}
+
+		// 解析字段名和后缀
+		var fieldName string
+		var conditionType string // "OR", "AND", "IN", "DEFAULT"
+
+		if strings.HasSuffix(key, "::__OR__") {
+			fieldName = utils.CamelToSnake(strings.TrimSuffix(key, "::__OR__"))
+			conditionType = "OR"
+		} else if strings.HasSuffix(key, "::__AND__") {
+			fieldName = utils.CamelToSnake(strings.TrimSuffix(key, "::__AND__"))
+			conditionType = "AND"
+		} else if strings.HasSuffix(key, "::__IN__") {
+			fieldName = utils.CamelToSnake(strings.TrimSuffix(key, "::__IN__"))
+			conditionType = "IN"
+		} else {
+			fieldName = utils.CamelToSnake(key)
+			conditionType = "DEFAULT"
+		}
+
+		// 验证字段名
+		if !isValidFieldName(fieldName) {
+			return nil, fmt.Errorf("invalid field name: %s", fieldName)
+		}
+
+		formattedFieldName := formatFieldName(fieldName, tableNameMap)
+
+		// 根据条件类型处理
+		switch conditionType {
 		case "IN":
-			// 处理 IN 操作符（数组值）
-			if values, ok := condition.Value.([]any); ok && len(values) > 0 {
-				placeholders := strings.Repeat("?,", len(values))
-				placeholders = placeholders[:len(placeholders)-1] // 移除最后一个逗号
-				queryStr := fmt.Sprintf("%s IN (%s)", fieldName, placeholders)
-				db = db.Where(queryStr, values...)
-			}
-		default:
-			queryStr := fmt.Sprintf("%s %s ?", fieldName, condition.Operator)
-			db = db.Where(queryStr, condition.Value)
-		}
-	}
-	// 处理OR条件
-	if len(orConditions) > 0 {
-		orQueries := make([]string, 0, len(orConditions))
-		orArgs := make([]any, 0, len(orConditions))
+			// 直接使用数组作为 IN 的值
+			placeholders := strings.Repeat("?,", len(values))
+			placeholders = placeholders[:len(placeholders)-1] // 移除最后一个逗号
+			queryStr := fmt.Sprintf("%s IN (%s)", formattedFieldName, placeholders)
+			db = db.Where(queryStr, values...)
 
-		for _, condition := range orConditions {
-			fieldName := formatFieldName(condition.Field, tableNameMap)
-			// 处理特殊操作符
-			switch condition.Operator {
-			case "IS_NULL_OR_EMPTY":
-				// 查询空值：IS NULL OR = ''
-				orQueries = append(orQueries, fmt.Sprintf("(%s IS NULL OR %s = '')", fieldName, fieldName))
-			case "IS_NOT_NULL_AND_NOT_EMPTY":
-				// 查询非空值：IS NOT NULL AND <> ''
-				orQueries = append(orQueries, fmt.Sprintf("(%s IS NOT NULL AND %s <> '')", fieldName, fieldName))
-			case "IN":
-				// 处理 IN 操作符（数组值）
-				if values, ok := condition.Value.([]any); ok && len(values) > 0 {
-					placeholders := strings.Repeat("?,", len(values))
-					placeholders = placeholders[:len(placeholders)-1] // 移除最后一个逗号
-					queryStr := fmt.Sprintf("%s IN (%s)", fieldName, placeholders)
-					orQueries = append(orQueries, queryStr)
-					orArgs = append(orArgs, values...)
+		case "OR":
+			// 遍历数组，每个元素解析为条件，用 OR 连接
+			orQueries := make([]string, 0, len(values))
+			orArgs := make([]any, 0)
+
+			for _, val := range values {
+				operator, parsedValue, err := parseSingleCondition(val)
+				if err != nil {
+					return nil, fmt.Errorf("field [%s] OR condition parse error: %w", fieldName, err)
 				}
-			default:
-				queryStr := fmt.Sprintf("%s %s ?", fieldName, condition.Operator)
-				orQueries = append(orQueries, queryStr)
-				orArgs = append(orArgs, condition.Value)
+
+				switch operator {
+				case "IS_NULL_OR_EMPTY":
+					orQueries = append(orQueries, fmt.Sprintf("(%s IS NULL OR %s = '')", formattedFieldName, formattedFieldName))
+				case "IS_NOT_NULL_AND_NOT_EMPTY":
+					orQueries = append(orQueries, fmt.Sprintf("(%s IS NOT NULL AND %s <> '')", formattedFieldName, formattedFieldName))
+				case "IN":
+					if inValues, ok := parsedValue.([]any); ok && len(inValues) > 0 {
+						placeholders := strings.Repeat("?,", len(inValues))
+						placeholders = placeholders[:len(placeholders)-1]
+						queryStr := fmt.Sprintf("%s IN (%s)", formattedFieldName, placeholders)
+						orQueries = append(orQueries, queryStr)
+						orArgs = append(orArgs, inValues...)
+					}
+				default:
+					queryStr := fmt.Sprintf("%s %s ?", formattedFieldName, operator)
+					orQueries = append(orQueries, queryStr)
+					orArgs = append(orArgs, parsedValue)
+				}
+			}
+
+			if len(orQueries) > 0 {
+				orClause := "(" + strings.Join(orQueries, " OR ") + ")"
+				db = db.Where(orClause, orArgs...)
+			}
+
+		case "AND", "DEFAULT":
+			// 遍历数组，每个元素解析为条件，用 AND 连接（默认也是 AND）
+			for _, val := range values {
+				operator, parsedValue, err := parseSingleCondition(val)
+				if err != nil {
+					return nil, fmt.Errorf("field [%s] AND condition parse error: %w", fieldName, err)
+				}
+				db = applyCondition(db, formattedFieldName, operator, parsedValue)
 			}
 		}
-
-		orClause := "(" + strings.Join(orQueries, " OR ") + ")"
-		db = db.Where(orClause, orArgs...)
 	}
 
 	return db, nil

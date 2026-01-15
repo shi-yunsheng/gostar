@@ -166,7 +166,16 @@ func (r *Request) GetClientIP() []string {
 func (r *Request) GetFile(key string, allowType []string) []*multipart.FileHeader {
 	// 检查请求是否为多部分表单
 	if r.MultipartForm == nil {
-		return nil
+		// 检查 Content-Type 是否为 multipart/form-data
+		contentType := r.Header.Get("Content-Type")
+		if !strings.HasPrefix(contentType, "multipart/form-data") {
+			return nil
+		}
+		// 解析 multipart form，最大内存 32MB
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			return nil
+		}
 	}
 	// 从表单中根据键获取文件
 	files := r.MultipartForm.File[key]

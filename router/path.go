@@ -262,13 +262,55 @@ func (r *Router) parsePath(path string) (string, []handler.Param) {
 	return resultPath, params
 }
 
-// 按路径长度排序路由（最长的在前）
+// 按路径类型和长度排序路由
 func (r *Router) sortRoutes() {
+	r.sortedRoutes = make([]string, 0, len(r.routes))
 	for path := range r.routes {
 		r.sortedRoutes = append(r.sortedRoutes, path)
 	}
 
+	// 定义正则元字符集合
+	regexpMetaChars := map[byte]bool{
+		'^': true, '$': true, '.': true, '*': true, '+': true, '?': true,
+		'|': true, '(': true, ')': true, '[': true, ']': true, '{': true,
+		'}': true, '\\': true,
+	}
+
 	sort.Slice(r.sortedRoutes, func(i, j int) bool {
-		return len(r.sortedRoutes[i]) > len(r.sortedRoutes[j])
+		a, b := r.sortedRoutes[i], r.sortedRoutes[j]
+
+		// 检查是否为精确路径（不包含正则元字符）
+		isExactPathA := true
+		isExactPathB := true
+
+		for k := 0; k < len(a); k++ {
+			if regexpMetaChars[a[k]] {
+				isExactPathA = false
+				break
+			}
+		}
+
+		for k := 0; k < len(b); k++ {
+			if regexpMetaChars[b[k]] {
+				isExactPathB = false
+				break
+			}
+		}
+
+		// 精确路径优先于正则路径
+		if isExactPathA && !isExactPathB {
+			return true
+		}
+		if !isExactPathA && isExactPathB {
+			return false
+		}
+
+		// 同类型中，按长度降序排列
+		if len(a) != len(b) {
+			return len(a) > len(b)
+		}
+
+		// 长度相同，按字母顺序稳定排序
+		return a < b
 	})
 }

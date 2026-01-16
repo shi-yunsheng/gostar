@@ -12,7 +12,7 @@ import (
 )
 
 // 解析路由
-func (r *Router) parseRoute(routes []Route, parentPath, parentRegex string) {
+func (r *Router) parseRoute(routes []Route, parent string) {
 	for i := range routes {
 		route := &routes[i]
 		// 如果Webapp和Static同时设置，则抛出错误
@@ -24,54 +24,49 @@ func (r *Router) parseRoute(routes []Route, parentPath, parentRegex string) {
 			panic("handler, webapp, static, websocket and children cannot all be empty")
 		}
 
-		// 构建完整路径
-		var fullPath string
-		if parentPath != "" && parentPath != "/" {
-			fullPath = strings.TrimSuffix(parentPath, "/") + "/" + strings.TrimPrefix(route.Path, "/")
-		} else {
-			fullPath = route.Path
+		if !strings.HasPrefix(route.Path, "/") {
+			route.Path = "/" + route.Path
+		}
+		// 排除"/"，否则会和根路径冲突
+		if parent != "/" {
+			route.parent = parent
+			// 移除父路径的^和$
+			if after, ok := strings.CutPrefix(parent, "^"); ok {
+				parent = after
+			}
+			if after, ok := strings.CutSuffix(parent, "$"); ok {
+				parent = after
+			}
+
+			route.Path = parent + route.Path
 		}
 
-		// 确保路径以/开头
-		if !strings.HasPrefix(fullPath, "/") {
-			fullPath = "/" + fullPath
-		}
-
-		// 保存原始路径
-		route.originalPath = fullPath
-
-		// 解析路径为正则表达式
-		regexPath, params := r.parsePath(fullPath)
-		route.params = params
-
+		route.Path, route.params = r.parsePath(route.Path)
 		// 如果是Static或Webapp，路径后面加上泛匹配
 		if route.Static != nil || route.Webapp != nil {
-			// 确保路径以^开头
-			if !strings.HasPrefix(regexPath, "^") {
-				regexPath = "^" + regexPath
+			// 如果路径不以^开头，则添加^
+			if !strings.HasPrefix(route.Path, "^") {
+				route.Path = "^" + route.Path
 			}
-			// 移除末尾的$
-			if after, ok := strings.CutSuffix(regexPath, "$"); ok {
-				regexPath = after
+			// 移除父路径末尾的$
+			if after, ok := strings.CutSuffix(route.Path, "$"); ok {
+				route.Path = after
 			}
-			// 移除末尾的/
-			if after, ok := strings.CutSuffix(regexPath, "/"); ok {
-				regexPath = after
+			// static需判断是否允许目录访问，webapp需支持SPA
+			if after, ok := strings.CutSuffix(route.Path, "/"); ok {
+				route.Path = after
 			}
 			if route.Static != nil && route.Static.AllowDir || route.Webapp != nil {
-				regexPath = regexPath + `(/.*)?$`
+				route.Path = route.Path + `(/.*)?$`
 			} else {
-				regexPath = regexPath + `(/[^/]+.*)?$`
+				route.Path = route.Path + `(/[^/]+.*)?$`
 			}
 		}
-
-		// 存储路由，使用正则表达式作为key
-		r.routes[regexPath] = route
-		route.regexPath = regexPath
-
+		// 存储路由
+		r.routes[route.Path] = route
 		// 合并父路由的配置（SecretKey和Middleware）
-		if parentRegex != "" && r.routes[parentRegex] != nil {
-			parentRoute := r.routes[parentRegex]
+		if route.parent != "" && r.routes[route.parent] != nil {
+			parentRoute := r.routes[route.parent]
 			// 从父路由合并SecretKey到子路由
 			if parentRoute.SecretKey != nil {
 				if route.SecretKey == nil {
@@ -92,27 +87,25 @@ func (r *Router) parseRoute(routes []Route, parentPath, parentRegex string) {
 				route.Middleware = mergedMiddleware
 			}
 		}
-
 		// 如果静态文件或网站设置为空，则解析子路由
 		if route.Static == nil && route.Webapp == nil && len(route.Children) > 0 {
-			r.parseRoute(route.Children, fullPath, regexPath)
+			r.parseRoute(route.Children, route.Path)
 		}
 	}
 }
 
 // 解析路径
 func (r *Router) parsePath(path string) (string, []handler.Param) {
-	// 如果没有路径参数，返回转义后的正则路径
-	if !strings.Contains(path, "{") || !strings.Contains(path, "}") {
-		return "^" + regexp.QuoteMeta(path) + "$", nil
+	// 没有路径参数，直接返回路径
+	if !(strings.Contains(path, "{") && strings.Contains(path, "}")) {
+		return path, nil
 	}
-
 	// 匹配路径参数
 	re := regexp.MustCompile(`\{([^:{}]+)(?::([^:{}]+))?(?::([^:{}]+))?\}`)
 	allMatches := re.FindAllStringSubmatch(path, -1)
 	// 如果没有找到匹配，返回原始路径
 	if len(allMatches) == 0 {
-		return "^" + regexp.QuoteMeta(path) + "$", nil
+		return path, nil
 	}
 	// 存储当前路径的所有参数信息
 	params := make([]handler.Param, 0)
@@ -234,12 +227,10 @@ func (r *Router) parsePath(path string) (string, []handler.Param) {
 		param := params[idx]
 
 		literal := path[lastIndex:start]
-		// 转义字面量部分中的正则元字符
-		literal = regexp.QuoteMeta(literal)
 
-		if param.Optional && strings.HasSuffix(literal, `\/`) {
+		if param.Optional && strings.HasSuffix(literal, "/") {
 			// 如果可选参数前有"/"，则将"/"和参数一起设为可选
-			literal = strings.TrimSuffix(literal, `\/`)
+			literal = strings.TrimSuffix(literal, "/")
 			resultBuilder.WriteString(literal)
 
 			innerPattern := strings.TrimSuffix(strings.TrimPrefix(param.Pattern, "("), ")")
@@ -263,12 +254,7 @@ func (r *Router) parsePath(path string) (string, []handler.Param) {
 		lastIndex = end
 	}
 
-	// 添加剩余部分并转义
-	remaining := path[lastIndex:]
-	if remaining != "" {
-		resultBuilder.WriteString(regexp.QuoteMeta(remaining))
-	}
-
+	resultBuilder.WriteString(path[lastIndex:])
 	resultPath := resultBuilder.String()
 	// 添加^和$防止泛匹配
 	resultPath = "^" + resultPath + "$"
@@ -276,67 +262,13 @@ func (r *Router) parsePath(path string) (string, []handler.Param) {
 	return resultPath, params
 }
 
-// 按路径类型和长度排序路由
+// 按路径长度排序路由（最长的在前）
 func (r *Router) sortRoutes() {
-	r.sortedRoutes = make([]string, 0, len(r.routes))
 	for path := range r.routes {
 		r.sortedRoutes = append(r.sortedRoutes, path)
 	}
 
-	// 定义正则元字符集合
-	regexpMetaChars := map[byte]bool{
-		'^': true, '$': true, '.': true, '*': true, '+': true, '?': true,
-		'|': true, '(': true, ')': true, '[': true, ']': true, '{': true,
-		'}': true, '\\': true,
-	}
-
 	sort.Slice(r.sortedRoutes, func(i, j int) bool {
-		a, b := r.sortedRoutes[i], r.sortedRoutes[j]
-
-		// 检查是否为精确路径（不包含正则元字符，除了^和$）
-		isExactPathA := true
-		isExactPathB := true
-
-		for k := 0; k < len(a); k++ {
-			if a[k] == '^' && k == 0 {
-				continue // 开头的^不算正则
-			}
-			if a[k] == '$' && k == len(a)-1 {
-				continue // 结尾的$不算正则
-			}
-			if regexpMetaChars[a[k]] {
-				isExactPathA = false
-				break
-			}
-		}
-
-		for k := 0; k < len(b); k++ {
-			if b[k] == '^' && k == 0 {
-				continue // 开头的^不算正则
-			}
-			if b[k] == '$' && k == len(b)-1 {
-				continue // 结尾的$不算正则
-			}
-			if regexpMetaChars[b[k]] {
-				isExactPathB = false
-				break
-			}
-		}
-
-		// 精确路径优先于正则路径
-		if isExactPathA && !isExactPathB {
-			return true
-		}
-		if !isExactPathA && isExactPathB {
-			return false
-		}
-
-		// 同类型中，按长度降序排列
-		if len(a) != len(b) {
-			return len(a) > len(b)
-		}
-
-		// 长度相同，按字母顺序稳定排序
-		return a < b
+		return len(r.sortedRoutes[i]) > len(r.sortedRoutes[j])
 	})
 }

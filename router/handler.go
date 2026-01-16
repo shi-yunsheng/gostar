@@ -26,10 +26,12 @@ func (r *Router) getMethod(route *Route) Method {
 func (r *Router) parseParam(route *Route, path string) []handler.Param {
 	// 合并父路由和当前路由的参数
 	params := make([]handler.Param, 0)
-	if route.parent != "" {
+	if route.parent != "" && r.routes[route.parent] != nil && len(r.routes[route.parent].params) > 0 {
 		params = append(params, r.routes[route.parent].params...)
 	}
-	params = append(params, route.params...)
+	if len(route.params) > 0 {
+		params = append(params, route.params...)
+	}
 	// 正则匹配参数
 	re := regexp.MustCompile(route.Path)
 	allMatches := re.FindAllStringSubmatch(path, -1)

@@ -20,7 +20,7 @@ func NewRouter() *Router {
 
 // 使用路由
 func (r *Router) UseRoute(routes []Route) {
-	r.parseRoute(routes, "")
+	r.parseRoute(routes, "", "")
 
 	r.sortRoutes()
 

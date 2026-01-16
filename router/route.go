@@ -68,6 +68,10 @@ type Route struct {
 	once sync.Once
 	// 缓存模型类型
 	modelType reflect.Type
+	// 原始路径（如：/order/{order_type?}/list）
+	originalPath string
+	// 正则表达式路径（如：^/order(?:/([^/]+))?/list$）
+	regexPath string
 }
 
 // 验证绑定参数

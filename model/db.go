@@ -87,6 +87,8 @@ func InitDB(config map[string]DBConfig) {
 			conf := &gorm.Config{}
 			if debug {
 				conf.Logger = logger.Default.LogMode(logger.Info)
+			} else {
+				conf.Logger = logger.Default.LogMode(logger.Silent)
 			}
 
 			switch config.Driver {
